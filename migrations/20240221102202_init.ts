@@ -15,7 +15,7 @@ export async function up(knex: Knex): Promise<void> {
     table.integer('user_fid').unsigned().references('fid').inTable('user')
     table.text('data_type', 'text').notNullable()
     table.text('data_content', 'text').notNullable()
-    // max price is 99.99
+    // max price is 999.9
     table.string('price', 5).notNullable()
 
     table.datetime('created_at').notNullable()
@@ -35,10 +35,24 @@ export async function up(knex: Knex): Promise<void> {
     table.datetime('created_at').notNullable()
     table.datetime('updated_at').notNullable()
   })
+
+  await knex.schema.createTable('invoice', table => {
+    table.integer('buyer_fid').unsigned().references('fid').inTable('user')
+    table.integer('seller_fid').unsigned().references('fid').inTable('user')
+    table.integer('item_id').unsigned()
+    table.integer('invoice_id').unsigned().index()
+
+    table.datetime('created_at').notNullable()
+    table.datetime('updated_at').notNullable()
+
+    table.primary(['buyer_fid', 'seller_fid', 'item_id'])
+    table.index(['buyer_fid', 'seller_fid', 'item_id'], 'idx_item_user')
+  })
 }
 
 export async function down(knex: Knex): Promise<void> {
   await knex.schema.dropTableIfExists('content')
   await knex.schema.dropTableIfExists('purchase')
+  await knex.schema.dropTableIfExists('invoice')
   await knex.schema.dropTableIfExists('user')
 }

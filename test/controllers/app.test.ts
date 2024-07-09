@@ -4,22 +4,12 @@ import { db } from '../../src/db'
 import { getInteractorInfo, InteractorInfo } from '../../src/utils/farcaster'
 import app from '../../src/app'
 import supertest from 'supertest'
-import { getAppByFid, getAppsCount } from '../../src/db/app'
-import { ICreateRequest } from '../../src/controllers/v1/app/interface/ICreateRequest'
 import { getConfigData, setConfigData } from '../../src/config'
-import { Wallet } from 'ethers'
-import { prepareEthAddress } from '../../src/utils/eth'
-
-export interface InputMock {
-  /**
-   * Click bytes
-   */
-  bytes: string
-  /**
-   * Extracted input from the click bytes
-   */
-  input: string
-}
+import { IInvoiceRequest } from '../../src/controllers/v1/app/interface/IInvoiceRequest'
+import { upsertUser } from '../../src/db/user'
+import { insertContent } from '../../src/db/content'
+import { IIsOwnRequest } from '../../src/controllers/v1/app/interface/IIsOwnRequest'
+import { insertPurchase } from '../../src/db/purchase'
 
 const testDb = knex(configurations.development)
 
@@ -47,21 +37,15 @@ function mockInteractorFunc(func: (neynarApiKey: string, clickData: string) => I
   getInteractorInfoMock.mockImplementation(func)
 }
 
-function mockInputData(fid: number, frameUrl: string, authorizedFrameUrl: string, data: InputMock[]) {
+function mockInputData(fid: number, authorizedFrameUrl: string) {
   mockInteractorFunc((neynarApiKey: string, clickData: string) => {
-    const foundItem = data.find(item => item.bytes === clickData)
-
-    if (!foundItem) {
-      throw new Error('Unrecognized mocked click data: ' + clickData)
-    }
-
     return {
       isValid: true,
       fid,
       username: '',
       display_name: '',
       pfp_url: '',
-      inputValue: foundItem.input,
+      inputValue: '',
       url: authorizedFrameUrl,
       timestamp: new Date().toISOString(),
       custodyAddress: '',
@@ -90,158 +74,172 @@ describe('App', () => {
     await db.destroy()
   })
 
-  it('should create an app', async () => {
-    const fid = 123
-    const postData: ICreateRequest = {
-      frameUrlBytes: '0x123',
-      frameCallbackUrlBytes: '0x222',
-      frameSignerAddressBytes: '0x333',
+  it('should create invoice', async () => {
+    const sellerFid = 1
+    const buyerFid1 = 2
+    const buyerFid2 = 3
+    await upsertUser({ fid: sellerFid, main_eth_address: '111' })
+    await upsertUser({ fid: buyerFid1, main_eth_address: '222' })
+    await upsertUser({ fid: buyerFid2, main_eth_address: '333' })
+    await insertContent({
+      user_fid: sellerFid,
+      data_type: 'text',
+      data_content: 'hello1',
+      price: '11.1',
+    })
+
+    const postData: IInvoiceRequest = {
+      sellerFid,
+      itemId: 1,
+      clickData: 'clickData1',
     }
-    const wallet = Wallet.createRandom()
     const authorizedFrameUrl = 'https://auth-frame.com'
-    const frameUrl = 'https://example.com'
-    const callbackUrl = 'https://example.com/callback'
     setConfigData({
       ...getConfigData(),
       authorizedFrameUrl,
     })
-    mockInputData(fid, frameUrl, authorizedFrameUrl, [
-      {
-        bytes: postData.frameUrlBytes,
-        input: frameUrl,
-      },
-      {
-        bytes: postData.frameCallbackUrlBytes,
-        input: callbackUrl,
-      },
-      {
-        bytes: postData.frameSignerAddressBytes,
-        input: wallet.address,
-      },
-    ])
-    expect(await getAppByFid(fid)).toBeNull()
-    expect(await getAppsCount()).toEqual(0)
+    mockInputData(buyerFid1, authorizedFrameUrl)
 
-    const data = (await supertestApp.post(`/v1/app/create`).send(postData)).body
-    expect(data).toEqual({ status: 'ok' })
-    expect(await getAppByFid(fid)).toBeDefined()
-    expect(await getAppsCount()).toEqual(1)
+    const response1 = {
+      status: 'ok',
+      invoiceId: 1,
+      buyerFid: buyerFid1,
+      isOwn: false,
+      itemId: 1,
+      sellerFid,
+      price: '11.100001',
+    }
 
-    const data1 = (await supertestApp.post(`/v1/app/create`).send(postData)).body
-    expect(data1).toEqual({ status: 'error', message: 'App already exists' })
-    expect(await getAppsCount()).toEqual(1)
+    // response for the second buyer
+    const response2 = { ...response1, invoiceId: 2, buyerFid: buyerFid2, price: '11.100002' }
+    const data = (await supertestApp.post(`/v1/app/invoice`).send(postData)).body
+    expect(data).toEqual(response1)
+
+    // try to get an invoice for the same item
+    const data1 = (await supertestApp.post(`/v1/app/invoice`).send(postData)).body
+    expect(data1).toEqual(response1)
+
+    // mock another buyer
+    mockInputData(buyerFid2, authorizedFrameUrl)
+    const data2 = (await supertestApp.post(`/v1/app/invoice`).send(postData)).body
+    expect(data2).toEqual(response2)
+
+    // try to get an invoice for the same item
+    const data3 = (await supertestApp.post(`/v1/app/invoice`).send(postData)).body
+    expect(data3).toEqual(response2)
   })
 
-  it('should create multiple apps', async () => {
-    const fid = 123
-    const postData1: ICreateRequest = {
-      frameUrlBytes: '0x111',
-      frameCallbackUrlBytes: '0x222',
-      frameSignerAddressBytes: '0x333',
+  it('should buy item', async () => {
+    const sellerFid = 1
+    const buyerFid1 = 2
+    const buyerFid2 = 3
+    await upsertUser({ fid: sellerFid, main_eth_address: '111' })
+    await upsertUser({ fid: buyerFid1, main_eth_address: '222' })
+    await upsertUser({ fid: buyerFid2, main_eth_address: '333' })
+    const contentItem = {
+      user_fid: sellerFid,
+      data_type: 'text',
+      data_content: 'hello1',
+      price: '11.1',
     }
-    const postData2: ICreateRequest = {
-      frameUrlBytes: '0x444',
-      frameCallbackUrlBytes: '0x555',
-      frameSignerAddressBytes: '0x666',
+    await insertContent(contentItem)
+
+    const invoiceData: IInvoiceRequest = {
+      sellerFid,
+      itemId: 1,
+      clickData: 'clickData1',
     }
-
-    const wallet1 = Wallet.createRandom()
-    const wallet2 = Wallet.createRandom()
-
-    const appInput1Mock: InputMock[] = [
-      {
-        bytes: postData1.frameUrlBytes,
-        input: 'https://example.com',
-      },
-      {
-        bytes: postData1.frameCallbackUrlBytes,
-        input: 'https://example.com/callback',
-      },
-      {
-        bytes: postData1.frameSignerAddressBytes,
-        input: wallet1.address,
-      },
-    ]
-
-    const appInput2Mock: InputMock[] = [
-      {
-        bytes: postData2.frameUrlBytes,
-        input: 'https://example22.com',
-      },
-      {
-        bytes: postData2.frameCallbackUrlBytes,
-        input: 'https://example222.com/callback',
-      },
-      {
-        bytes: postData2.frameSignerAddressBytes,
-        input: wallet2.address,
-      },
-    ]
+    const isOwnData: IIsOwnRequest = {
+      sellerFid,
+      itemId: 1,
+      clickData: 'clickData2',
+    }
 
     const authorizedFrameUrl = 'https://auth-frame.com'
-    const frameUrl = 'https://example.com'
     setConfigData({
       ...getConfigData(),
       authorizedFrameUrl,
     })
-    expect(await getAppByFid(fid)).toBeNull()
-    expect(await getAppsCount()).toEqual(0)
 
-    mockInputData(fid, frameUrl, authorizedFrameUrl, appInput1Mock)
-    const data = (await supertestApp.post(`/v1/app/create`).send(postData1)).body
-    expect(data).toEqual({ status: 'ok' })
-    expect(await getAppByFid(fid)).toBeDefined()
-    expect(await getAppsCount()).toEqual(1)
-
-    mockInputData(fid, frameUrl, authorizedFrameUrl, appInput2Mock)
-    const data1 = (await supertestApp.post(`/v1/app/create`).send(postData2)).body
-    expect(data1).toEqual({ status: 'ok' })
-    expect(await getAppsCount()).toEqual(2)
-  })
-
-  it('should check app existence', async () => {
-    const fid = 123
-    const postData: ICreateRequest = {
-      frameUrlBytes: '0x123',
-      frameCallbackUrlBytes: '0x222',
-      frameSignerAddressBytes: '0x333',
+    const response1 = {
+      status: 'ok',
+      invoiceId: 1,
+      buyerFid: buyerFid1,
+      isOwn: false,
+      itemId: 1,
+      sellerFid,
+      price: '11.100001',
     }
-    const wallet = Wallet.createRandom()
-    const authorizedFrameUrl = 'https://auth-frame.com'
-    const frameUrl = 'https://example.com'
-    const callbackUrl = 'https://example.com/callback'
-    setConfigData({
-      ...getConfigData(),
-      authorizedFrameUrl,
+    // response for the second buyer
+    const response2 = { ...response1, invoiceId: 2, buyerFid: buyerFid2, price: '11.100002' }
+    mockInputData(buyerFid1, authorizedFrameUrl)
+    expect((await supertestApp.post(`/v1/app/is-own`).send(isOwnData)).body).toEqual({
+      status: 'ok',
+      fid: buyerFid1,
+      isOwn: false,
+      itemId: 1,
+      sellerFid,
     })
-    mockInputData(fid, frameUrl, authorizedFrameUrl, [
-      {
-        bytes: postData.frameUrlBytes,
-        input: frameUrl,
-      },
-      {
-        bytes: postData.frameCallbackUrlBytes,
-        input: callbackUrl,
-      },
-      {
-        bytes: postData.frameSignerAddressBytes,
-        input: wallet.address,
-      },
-    ])
 
-    const data = (await supertestApp.post(`/v1/app/create`).send(postData)).body
-    expect(data).toEqual({ status: 'ok' })
-    expect(await getAppByFid(fid)).toBeDefined()
-    expect(await getAppsCount()).toEqual(1)
+    mockInputData(buyerFid1, authorizedFrameUrl)
+    const data = (await supertestApp.post(`/v1/app/invoice`).send(invoiceData)).body
+    expect(data).toEqual(response1)
 
-    // check with the full address
-    const data1 = (await supertestApp.get(`/v1/app/exists?applicationAddress=${wallet.address}`).send()).body
-    expect(data1).toEqual({ status: 'ok', isExists: true })
+    // check that creation of an invoice is not changed the status of owning
+    mockInputData(buyerFid1, authorizedFrameUrl)
+    expect((await supertestApp.post(`/v1/app/is-own`).send(isOwnData)).body).toEqual({
+      status: 'ok',
+      fid: buyerFid1,
+      isOwn: false,
+      itemId: 1,
+      sellerFid,
+    })
 
-    // check with the prepared address
-    const data2 = (
-      await supertestApp.get(`/v1/app/exists?applicationAddress=${prepareEthAddress(wallet.address)}`).send()
-    ).body
-    expect(data2).toEqual({ status: 'ok', isExists: true })
+    await insertPurchase({
+      buyer_fid: buyerFid1,
+      seller_fid: sellerFid,
+      item_id: 1,
+      tx_id: 'tx1',
+    })
+
+    // check that the status of owning is changed after the purchase
+    mockInputData(buyerFid1, authorizedFrameUrl)
+    expect((await supertestApp.post(`/v1/app/is-own`).send(isOwnData)).body).toEqual({
+      status: 'ok',
+      fid: buyerFid1,
+      isOwn: true,
+      itemId: 1,
+      sellerFid,
+      content: contentItem.data_content,
+      contentType: contentItem.data_type,
+    })
+
+    // mock another buyer
+    mockInputData(buyerFid2, authorizedFrameUrl)
+    const data2 = (await supertestApp.post(`/v1/app/invoice`).send(invoiceData)).body
+    expect(data2).toEqual(response2)
+    expect((await supertestApp.post(`/v1/app/is-own`).send(isOwnData)).body).toEqual({
+      status: 'ok',
+      fid: buyerFid2,
+      isOwn: false,
+      itemId: 1,
+      sellerFid,
+    })
+
+    await insertPurchase({
+      buyer_fid: buyerFid2,
+      seller_fid: sellerFid,
+      item_id: 1,
+      tx_id: 'tx2',
+    })
+    expect((await supertestApp.post(`/v1/app/is-own`).send(isOwnData)).body).toEqual({
+      status: 'ok',
+      fid: buyerFid2,
+      isOwn: true,
+      itemId: 1,
+      sellerFid,
+      content: contentItem.data_content,
+      contentType: contentItem.data_type,
+    })
   })
 })

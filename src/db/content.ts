@@ -12,11 +12,28 @@ export interface IContent {
   updated_at?: string
 }
 
-export async function insertContent(contentData: Omit<IContent, 'created_at' | 'updated_at'>): Promise<void> {
-  const date = db.fn.now()
-  const newItem = { ...contentData, created_at: date, updated_at: date }
+export async function getNextItemId(userFid: number): Promise<number> {
+  const maxItemId = await db(CONTENT_TABLE_NAME)
+    .where({
+      user_fid: userFid,
+    })
+    .max('item_id')
+    .first()
 
+  return Number(maxItemId?.max || 0) + 1
+}
+
+export async function insertContent(
+  contentData: Omit<IContent, 'created_at' | 'updated_at' | 'item_id'>,
+): Promise<number> {
+  const date = db.fn.now()
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  const newItem: IContent = { ...contentData, created_at: date, updated_at: date }
+  newItem.item_id = await getNextItemId(contentData.user_fid)
   await db(CONTENT_TABLE_NAME).insert(newItem)
+
+  return newItem.item_id
 }
 
 export async function contentCount(): Promise<number> {

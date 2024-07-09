@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from 'express'
-import { IIsOwnResponse } from './interface/IIsOwnResponse'
 import { getConfigData } from '../../../config'
-import { isItemPurchased } from '../../../db/purchase'
+import { IInvoiceResponse } from './interface/IInvoiceResponse'
+import { getInvoiceId, insertInvoice } from '../../../db/invoice'
+import { encodeBase } from '../../../utils/encoder'
 import { getContentItem } from '../../../db/content'
-import { IIsOwnRequest } from './interface/IIsOwnRequest'
+import { isItemPurchased } from '../../../db/purchase'
+import { IInvoiceRequest } from './interface/IInvoiceRequest'
 import { getInteractorInfo } from '../../../utils/farcaster'
 
 function isIntegerString(str: unknown): boolean {
@@ -12,11 +14,10 @@ function isIntegerString(str: unknown): boolean {
   return intRegex.test(str as string)
 }
 
-export async function getIsOwnParams(
-  req: Request<IIsOwnRequest>,
+export async function getInvoiceParams(
+  req: Request<IInvoiceRequest>,
 ): Promise<{ sellerFid: number; fid: number; itemId: number }> {
   const { neynarApiKey } = getConfigData()
-
   const { sellerFid, itemId, clickData } = req.body
 
   if (!sellerFid || !isIntegerString(sellerFid)) {
@@ -39,7 +40,7 @@ export async function getIsOwnParams(
     throw new Error(`External provider cannot handle the click data: ${(e as Error).message}`)
   }
 
-  return { fid: Number(fid), itemId: Number(itemId), sellerFid: Number(sellerFid) }
+  return { fid, itemId: Number(itemId), sellerFid: Number(sellerFid) }
 }
 
 /**
@@ -49,31 +50,39 @@ export async function getIsOwnParams(
  * @param next Next function
  */
 export default async (
-  req: Request<IIsOwnRequest>,
-  res: Response<IIsOwnResponse>,
+  req: Request<IInvoiceRequest>,
+  res: Response<IInvoiceResponse>,
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const { sellerFid, itemId, fid } = await getIsOwnParams(req)
+    const { sellerFid, itemId, fid } = await getInvoiceParams(req)
+
     const isOwn = await isItemPurchased(sellerFid, itemId, fid)
-    const result: IIsOwnResponse = {
+    let invoiceId = await getInvoiceId(sellerFid, itemId, fid)
+    const contentItem = await getContentItem(sellerFid, itemId)
+
+    if (!contentItem) {
+      throw new Error(`Content item not found: sellerFid: ${sellerFid}, itemId: ${itemId}`)
+    }
+
+    if (!invoiceId) {
+      invoiceId = await insertInvoice({
+        seller_fid: sellerFid,
+        item_id: itemId,
+        buyer_fid: fid,
+      })
+    }
+
+    const result: IInvoiceResponse = {
       status: 'ok',
       sellerFid,
-      fid,
+      buyerFid: fid,
       itemId,
-      isOwn: isOwn,
+      isOwn,
+      invoiceId,
+      price: encodeBase(Number(contentItem.price), invoiceId),
     }
 
-    if (isOwn) {
-      const itemInfo = await getContentItem(sellerFid, itemId)
-
-      if (!itemInfo) {
-        throw new Error(`Item not found: sellerFid: ${sellerFid}, itemId: ${itemId}`)
-      }
-
-      result.contentType = itemInfo.data_type
-      result.content = itemInfo.data_content
-    }
     res.json(result)
   } catch (e) {
     next(e)
