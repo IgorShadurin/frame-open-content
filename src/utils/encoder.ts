@@ -73,3 +73,68 @@ export function decodeAmount(encoded: string): { amount: number; itemId: number;
 
   return { amount, itemId, userId }
 }
+
+/**
+ * Encodes the given amount and invoiceId into a formatted string.
+ * @param {number} amount - The amount to encode.
+ * @param {number} invoiceId - The invoice ID to encode.
+ * @returns {string} - The encoded string.
+ * @throws {Error} - If any of the inputs are invalid.
+ */
+export function encodeBase(amount: number, invoiceId: number): string {
+  if (amount < 0.1 || amount > 999 || amount.toString().split('.')[1]?.length > 1) {
+    throw new Error('Invalid amount')
+  }
+
+  if (invoiceId < 1 || invoiceId > 99999 || !Number.isInteger(invoiceId)) {
+    throw new Error('Invalid invoiceId')
+  }
+
+  const formattedAmount = amount.toFixed(1)
+  const formattedInvoiceId = invoiceId.toString().padStart(5, '0')
+
+  return `${formattedAmount}${formattedInvoiceId}`.replace(/0+$/, '')
+}
+
+/**
+ * Decodes the given encoded string into the original amount and invoiceId.
+ * @param {string} encoded - The encoded string.
+ * @returns {{ amount: number, invoiceId: number }} - The decoded values.
+ * @throws {Error} - If the encoded string is invalid.
+ */
+export function decodeBase(encoded: string): { amount: number; invoiceId: number } {
+  const dotIndex = encoded.indexOf('.')
+
+  if (!/^\d+\.\d+$/.test(encoded)) {
+    throw new Error('Invalid encoded string')
+  }
+
+  if (dotIndex === -1) {
+    throw new Error('Invalid encoded string')
+  }
+
+  const numberLength = encoded.replace('.', '').length
+
+  if (numberLength > 10) {
+    // 3 (amount) + 1 (dot) + 1 (decimal) + 5 (invoiceId) = 10
+    throw new Error(`Invalid string length. Received: ${numberLength}`)
+  }
+
+  const amount = parseFloat(encoded.slice(0, dotIndex + 2))
+  const remaining = encoded.slice(dotIndex + 2)
+  const invoiceId = parseInt(remaining.padEnd(5, '0'), 10)
+
+  if (isNaN(amount) || isNaN(invoiceId)) {
+    throw new Error('NaN result value')
+  }
+
+  if (amount < 0.1 || amount > 999) {
+    throw new Error('Invalid result amount')
+  }
+
+  if (invoiceId < 1 || invoiceId > 99999) {
+    throw new Error('Invalid result invoiceId')
+  }
+
+  return { amount, invoiceId }
+}
