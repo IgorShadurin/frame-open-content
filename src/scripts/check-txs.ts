@@ -1,0 +1,129 @@
+import { ethers, id, formatUnits, Provider, Filter, Log } from 'ethers'
+import fs from 'fs'
+import path from 'path'
+import { prepareEthAddress } from '../utils/eth'
+import { getActiveSellers, getActiveSellersCount, getUserByEthAddress } from '../db/user'
+import { decodeBase } from '../utils/encoder'
+import { getInvoicedItem, setInvoicePaid } from '../db/invoice'
+import { getContentItem } from '../db/content'
+
+const usdcBaseAddress = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
+const START_BLOCK = 16913050 // starting block if no state is saved
+const STATE_FILE = path.resolve(__dirname, 'state.json')
+let sellersList: { [key: string]: number } = {}
+
+interface State {
+  latestBlock: number
+}
+
+async function loadState(): Promise<State> {
+  if (fs.existsSync(STATE_FILE)) {
+    const data = fs.readFileSync(STATE_FILE, 'utf8')
+
+    return JSON.parse(data)
+  }
+
+  return { latestBlock: START_BLOCK }
+}
+
+async function saveState(state: State): Promise<void> {
+  fs.writeFileSync(STATE_FILE, JSON.stringify(state), 'utf8')
+}
+
+async function fetchHistoricalEvents(
+  provider: Provider,
+  contract: ethers.Contract,
+  filter: Filter,
+  fromBlock: number,
+): Promise<void> {
+  const logs = await provider.getLogs({ ...filter, fromBlock })
+  logs.forEach(log => {
+    handleEvent(log, contract)
+  })
+}
+
+async function handleEvent(log: Log, contract: ethers.Contract): Promise<void> {
+  try {
+    const parsedLog = contract.interface.parseLog(log)
+
+    if (!parsedLog) {
+      return
+    }
+    const { from, to, value } = parsedLog.args
+
+    if (!sellersList[prepareEthAddress(to)]) {
+      return
+    }
+
+    const amount = formatUnits(value, 6)
+    console.log(`Transfer from ${from} to ${to} of ${amount} USDC`)
+    console.log(log)
+    const decoded = decodeBase(amount)
+    console.log('Decoded:', decoded)
+    const buyerUser = await getUserByEthAddress(prepareEthAddress(from))
+    const sellerUser = await getUserByEthAddress(prepareEthAddress(to))
+
+    if (!buyerUser || !sellerUser) {
+      throw new Error(`Buyer or seller not found: ${from}, ${to}`)
+    }
+
+    const invoiceItem = await getInvoicedItem(sellerUser.fid, decoded.invoiceId, buyerUser.fid)
+
+    if (!invoiceItem) {
+      throw new Error(`Invoice item not found: ${sellerUser.fid}, ${decoded.invoiceId}, ${buyerUser.fid}`)
+    }
+
+    if (invoiceItem.is_paid) {
+      return
+    }
+
+    const contentItem = await getContentItem(sellerUser.fid, invoiceItem.item_id)
+
+    if (!contentItem) {
+      throw new Error(`Content item not found: ${sellerUser.fid}, ${invoiceItem.item_id}`)
+    }
+
+    if (Number(amount) < Number(contentItem.price)) {
+      throw new Error(`The amount is less than the price: ${amount}, ${contentItem.price}`)
+    }
+
+    await setInvoicePaid(sellerUser.fid, invoiceItem.invoice_id, true)
+  } catch (e) {
+    console.error('Error in handleEvent', e)
+  }
+}
+
+async function start(): Promise<void> {
+  const state = await loadState()
+  // todo move the key to the config
+  const provider = new ethers.AlchemyProvider('base', 'rPbmLp211IR7wJvYvzvBfF9roILqI2f_')
+  const usdcABI = ['event Transfer(address indexed from, address indexed to, uint256 value)']
+  const usdcContract = new ethers.Contract(usdcBaseAddress, usdcABI, provider)
+  sellersList = await getActiveSellers()
+  setInterval(async () => {
+    if ((await getActiveSellersCount()) > sellersList.length) {
+      sellersList = await getActiveSellers()
+      console.log('The list of active seller updated.')
+    }
+  }, 5000)
+
+  const filter: Filter = {
+    address: usdcBaseAddress,
+    fromBlock: state.latestBlock,
+    topics: [id('Transfer(address,address,uint256)')],
+  }
+
+  // Fetch historical events
+  await fetchHistoricalEvents(provider, usdcContract, filter, state.latestBlock)
+
+  // Subscribe to new events
+  provider.on(filter, async (log: Log) => {
+    await handleEvent(log, usdcContract)
+    state.latestBlock = log.blockNumber + 1
+    await saveState(state)
+  })
+
+  console.log(`Listening for USDC transfers from block ${state.latestBlock}...`)
+}
+
+start().then()

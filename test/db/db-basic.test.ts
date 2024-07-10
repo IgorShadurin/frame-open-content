@@ -1,5 +1,5 @@
 import { db } from '../../src/db'
-import { upsertUser, userExists } from '../../src/db/user'
+import { getActiveSellers, getActiveSellersCount, upsertUser, userExists } from '../../src/db/user'
 import knex from 'knex'
 import configurations from '../../knexfile'
 import { contentCount, insertContent, userContentItems } from '../../src/db/content'
@@ -33,6 +33,8 @@ describe('DB Basic', () => {
     expect(await contentCount()).toBe(0)
     expect(await purchaseCount()).toBe(0)
     expect(await userContentItems(1)).toHaveLength(0)
+    expect(await getActiveSellersCount()).toEqual(0)
+    expect(await getActiveSellers()).toEqual({})
 
     await upsertUser({ fid: 1, main_eth_address: '111' })
     await upsertUser({ fid: 2, main_eth_address: '222' })
@@ -40,6 +42,8 @@ describe('DB Basic', () => {
     await insertContent({ user_fid: 1, price: '1.01', data_type: 'text', data_content: 'hello2' })
     await insertPurchase({ buyer_fid: 2, seller_fid: 1, item_id: 1, tx_id: '1' })
 
+    expect(await getActiveSellers()).toEqual({ 111: 1 })
+    expect(await getActiveSellersCount()).toEqual(1)
     expect(await isItemPurchased(1, 1, 2)).toBeTruthy()
     expect(await userExists(1)).toBeTruthy()
     expect(await userExists(2)).toBeTruthy()

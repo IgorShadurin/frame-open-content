@@ -14,8 +14,7 @@
     "lint:check": "eslint \"src/**/*.ts\" \"test/**/*.ts\" && prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "check:types": "tsc --project tsconfig.test.json",
     "check-all": "npm run lint:check && npm run check:types && npm run test",
-    "test-request": "ts-node src/scripts/create-auth-request.ts",
-    "export-frames-clickcaster": "ts-node src/scripts/export-frames-clickcaster.ts"
+    "check-txs": "ts-node src/scripts/check-txs.ts"
   },
   "author": "DappyKit",
   "license": "MIT",

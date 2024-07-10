@@ -56,7 +56,7 @@ export async function getInvoiceId(sellerFid: number): Promise<number | null> {
   return invoice?.invoice_id || null
 }
 
-export async function getInvoicedItem(sellerFid: number, itemId: number, buyerFid: number): Promise<IInvoice> {
+export async function getInvoicedItem(sellerFid: number, itemId: number, buyerFid: number): Promise<IInvoice | null> {
   return db(INVOICE_TABLE_NAME)
     .where({
       seller_fid: sellerFid,
@@ -64,4 +64,13 @@ export async function getInvoicedItem(sellerFid: number, itemId: number, buyerFi
       buyer_fid: buyerFid,
     })
     .first()
+}
+
+export async function setInvoicePaid(sellerFid: number, invoiceId: number, isPaid: boolean): Promise<void> {
+  await db(INVOICE_TABLE_NAME)
+    .where({
+      seller_fid: sellerFid,
+      invoice_id: invoiceId,
+    })
+    .update({ is_paid: isPaid })
 }

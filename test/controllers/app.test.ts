@@ -6,7 +6,7 @@ import app from '../../src/app'
 import supertest from 'supertest'
 import { getConfigData, setConfigData } from '../../src/config'
 import { IInvoiceRequest } from '../../src/controllers/v1/app/interface/IInvoiceRequest'
-import { upsertUser } from '../../src/db/user'
+import { getActiveSellers, getActiveSellersCount, upsertUser } from '../../src/db/user'
 import { insertContent } from '../../src/db/content'
 import { IIsOwnRequest } from '../../src/controllers/v1/app/interface/IIsOwnRequest'
 import { insertPurchase } from '../../src/db/purchase'
@@ -330,5 +330,36 @@ describe('App', () => {
     expect(
       (await supertestApp.post(`/v1/app/invoice`).send({ sellerFid, itemId: 1, clickData: 'clickData1' })).body,
     ).toEqual(expected3)
+  })
+
+  it('should create list of sellers', async () => {
+    const authorizedFrameUrl = 'https://auth-frame.com'
+    setConfigData({
+      ...getConfigData(),
+      authorizedFrameUrl,
+    })
+
+    const expectedResult: { [key: string]: number } = {}
+    const maxUsers = 100
+    for (let i = 1; i <= maxUsers; i++) {
+      const contentItem: ICreateItemRequest = {
+        contentType: 'text',
+        contentData: 'hello1',
+        price: '1',
+        clickData: 'clickData1',
+      }
+
+      const address = `addr-${i}`
+      expectedResult[address] = i
+      mockInputData(i, authorizedFrameUrl, address)
+      expect((await supertestApp.post(`/v1/app/create-item`).send(contentItem)).body).toEqual({
+        status: 'ok',
+        itemId: 1,
+      })
+    }
+
+    expect(await getActiveSellersCount()).toEqual(maxUsers)
+    expect(await getActiveSellers()).toEqual(expectedResult)
+    expect(Object.keys(expectedResult)).toHaveLength(maxUsers)
   })
 })
