@@ -10,6 +10,7 @@ import { upsertUser } from '../../src/db/user'
 import { insertContent } from '../../src/db/content'
 import { IIsOwnRequest } from '../../src/controllers/v1/app/interface/IIsOwnRequest'
 import { insertPurchase } from '../../src/db/purchase'
+import { ICreateItemRequest } from '../../src/controllers/v1/app/interface/ICreateItemRequest'
 
 const testDb = knex(configurations.development)
 
@@ -37,7 +38,7 @@ function mockInteractorFunc(func: (neynarApiKey: string, clickData: string) => I
   getInteractorInfoMock.mockImplementation(func)
 }
 
-function mockInputData(fid: number, authorizedFrameUrl: string) {
+function mockInputData(fid: number, authorizedFrameUrl: string, custodyAddress: string) {
   mockInteractorFunc((neynarApiKey: string, clickData: string) => {
     return {
       isValid: true,
@@ -48,7 +49,7 @@ function mockInputData(fid: number, authorizedFrameUrl: string) {
       inputValue: '',
       url: authorizedFrameUrl,
       timestamp: new Date().toISOString(),
-      custodyAddress: '',
+      custodyAddress,
     }
   })
 }
@@ -78,9 +79,10 @@ describe('App', () => {
     const sellerFid = 1
     const buyerFid1 = 2
     const buyerFid2 = 3
-    await upsertUser({ fid: sellerFid, main_eth_address: '111' })
-    await upsertUser({ fid: buyerFid1, main_eth_address: '222' })
-    await upsertUser({ fid: buyerFid2, main_eth_address: '333' })
+    const sellerFidAddress = '000'
+    const buyerFid1Address = '111'
+    const buyerFid2Address = '222'
+    await upsertUser({ fid: sellerFid, main_eth_address: sellerFidAddress })
     await insertContent({
       user_fid: sellerFid,
       data_type: 'text',
@@ -98,7 +100,7 @@ describe('App', () => {
       ...getConfigData(),
       authorizedFrameUrl,
     })
-    mockInputData(buyerFid1, authorizedFrameUrl)
+    mockInputData(buyerFid1, authorizedFrameUrl, buyerFid1Address)
 
     const response1 = {
       status: 'ok',
@@ -120,7 +122,7 @@ describe('App', () => {
     expect(data1).toEqual(response1)
 
     // mock another buyer
-    mockInputData(buyerFid2, authorizedFrameUrl)
+    mockInputData(buyerFid2, authorizedFrameUrl, buyerFid2Address)
     const data2 = (await supertestApp.post(`/v1/app/invoice`).send(postData)).body
     expect(data2).toEqual(response2)
 
@@ -133,9 +135,10 @@ describe('App', () => {
     const sellerFid = 1
     const buyerFid1 = 2
     const buyerFid2 = 3
-    await upsertUser({ fid: sellerFid, main_eth_address: '111' })
-    await upsertUser({ fid: buyerFid1, main_eth_address: '222' })
-    await upsertUser({ fid: buyerFid2, main_eth_address: '333' })
+    const sellerFidAddress = '000'
+    const buyerFid1Address = '111'
+    const buyerFid2Address = '222'
+    await upsertUser({ fid: sellerFid, main_eth_address: sellerFidAddress })
     const contentItem = {
       user_fid: sellerFid,
       data_type: 'text',
@@ -172,7 +175,7 @@ describe('App', () => {
     }
     // response for the second buyer
     const response2 = { ...response1, invoiceId: 2, buyerFid: buyerFid2, price: '11.100002' }
-    mockInputData(buyerFid1, authorizedFrameUrl)
+    mockInputData(buyerFid1, authorizedFrameUrl, buyerFid1Address)
     expect((await supertestApp.post(`/v1/app/is-own`).send(isOwnData)).body).toEqual({
       status: 'ok',
       fid: buyerFid1,
@@ -181,12 +184,9 @@ describe('App', () => {
       sellerFid,
     })
 
-    mockInputData(buyerFid1, authorizedFrameUrl)
     const data = (await supertestApp.post(`/v1/app/invoice`).send(invoiceData)).body
     expect(data).toEqual(response1)
-
     // check that creation of an invoice is not changed the status of owning
-    mockInputData(buyerFid1, authorizedFrameUrl)
     expect((await supertestApp.post(`/v1/app/is-own`).send(isOwnData)).body).toEqual({
       status: 'ok',
       fid: buyerFid1,
@@ -203,7 +203,6 @@ describe('App', () => {
     })
 
     // check that the status of owning is changed after the purchase
-    mockInputData(buyerFid1, authorizedFrameUrl)
     expect((await supertestApp.post(`/v1/app/is-own`).send(isOwnData)).body).toEqual({
       status: 'ok',
       fid: buyerFid1,
@@ -215,7 +214,7 @@ describe('App', () => {
     })
 
     // mock another buyer
-    mockInputData(buyerFid2, authorizedFrameUrl)
+    mockInputData(buyerFid2, authorizedFrameUrl, buyerFid2Address)
     const data2 = (await supertestApp.post(`/v1/app/invoice`).send(invoiceData)).body
     expect(data2).toEqual(response2)
     expect((await supertestApp.post(`/v1/app/is-own`).send(isOwnData)).body).toEqual({
@@ -240,6 +239,44 @@ describe('App', () => {
       sellerFid,
       content: contentItem.data_content,
       contentType: contentItem.data_type,
+    })
+  })
+
+  it('should create item', async () => {
+    const sellerFid = 1
+    const sellerFidAddress = '000'
+
+    const contentItem: ICreateItemRequest = {
+      contentType: 'text',
+      contentData: 'hello1',
+      price: '11.1',
+      clickData: 'clickData1',
+    }
+    const contentItem2: ICreateItemRequest = {
+      contentType: 'text',
+      contentData: 'hello1',
+      price: '1',
+      clickData: 'clickData1',
+    }
+
+    const authorizedFrameUrl = 'https://auth-frame.com'
+    setConfigData({
+      ...getConfigData(),
+      authorizedFrameUrl,
+    })
+
+    mockInputData(sellerFid, authorizedFrameUrl, sellerFidAddress)
+    expect((await supertestApp.post(`/v1/app/create-item`).send(contentItem)).body).toEqual({
+      status: 'ok',
+      itemId: 1,
+    })
+    expect((await supertestApp.post(`/v1/app/create-item`).send(contentItem)).body).toEqual({
+      status: 'ok',
+      itemId: 2,
+    })
+    expect((await supertestApp.post(`/v1/app/create-item`).send(contentItem2)).body).toEqual({
+      status: 'ok',
+      itemId: 3,
     })
   })
 })

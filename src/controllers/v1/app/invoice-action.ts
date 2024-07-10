@@ -1,47 +1,12 @@
 import { Request, Response, NextFunction } from 'express'
-import { getConfigData } from '../../../config'
 import { IInvoiceResponse } from './interface/IInvoiceResponse'
 import { getInvoiceId, insertInvoice } from '../../../db/invoice'
 import { encodeBase } from '../../../utils/encoder'
 import { getContentItem } from '../../../db/content'
 import { isItemPurchased } from '../../../db/purchase'
 import { IInvoiceRequest } from './interface/IInvoiceRequest'
-import { getInteractorInfo } from '../../../utils/farcaster'
-
-function isIntegerString(str: unknown): boolean {
-  const intRegex = /^-?\d+$/
-
-  return intRegex.test(str as string)
-}
-
-export async function getInvoiceParams(
-  req: Request<IInvoiceRequest>,
-): Promise<{ sellerFid: number; fid: number; itemId: number }> {
-  const { neynarApiKey } = getConfigData()
-  const { sellerFid, itemId, clickData } = req.body
-
-  if (!sellerFid || !isIntegerString(sellerFid)) {
-    throw new Error('Invalid sellerFid')
-  }
-
-  if (!itemId || !isIntegerString(itemId)) {
-    throw new Error('Invalid itemId')
-  }
-
-  if (!clickData || typeof clickData !== 'string') {
-    throw new Error('Invalid clickData')
-  }
-
-  let fid = 0
-  try {
-    const response = await getInteractorInfo(neynarApiKey, clickData)
-    fid = response.fid
-  } catch (e) {
-    throw new Error(`External provider cannot handle the click data: ${(e as Error).message}`)
-  }
-
-  return { fid, itemId: Number(itemId), sellerFid: Number(sellerFid) }
-}
+import { upsertUser } from '../../../db/user'
+import { getUserParams } from './utils/user'
 
 /**
  *
@@ -55,8 +20,9 @@ export default async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const { sellerFid, itemId, fid } = await getInvoiceParams(req)
+    const { sellerFid, itemId, fid, ethAddress } = await getUserParams(req)
 
+    await upsertUser({ fid, main_eth_address: ethAddress })
     const isOwn = await isItemPurchased(sellerFid, itemId, fid)
     let invoiceId = await getInvoiceId(sellerFid, itemId, fid)
     const contentItem = await getContentItem(sellerFid, itemId)

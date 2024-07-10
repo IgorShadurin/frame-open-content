@@ -17,7 +17,7 @@ export async function getNextItemId(userFid: number): Promise<number> {
     .where({
       user_fid: userFid,
     })
-    .max('item_id')
+    .max('item_id as max')
     .first()
 
   return Number(maxItemId?.max || 0) + 1
