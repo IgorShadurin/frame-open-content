@@ -4,12 +4,13 @@ import path from 'path'
 import { prepareEthAddress } from '../utils/eth'
 import { getActiveSellers, getActiveSellersCount, getUserByEthAddress } from '../db/user'
 import { decodeBase } from '../utils/encoder'
-import { getInvoicedItem, setInvoicePaid } from '../db/invoice'
+import { getInvoiceById, setInvoicePaid } from '../db/invoice'
 import { getContentItem } from '../db/content'
 
 const usdcBaseAddress = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
 const START_BLOCK = 16913050 // starting block if no state is saved
 const STATE_FILE = path.resolve(__dirname, 'state.json')
+const MAX_BLOCK_RANGE = 2000 // Maximum block range to fetch logs
 let sellersList: { [key: string]: number } = {}
 
 interface State {
@@ -35,8 +36,9 @@ async function fetchHistoricalEvents(
   contract: ethers.Contract,
   filter: Filter,
   fromBlock: number,
+  toBlock: number,
 ): Promise<void> {
-  const logs = await provider.getLogs({ ...filter, fromBlock })
+  const logs = await provider.getLogs({ ...filter, fromBlock, toBlock })
   logs.forEach(log => {
     handleEvent(log, contract)
   })
@@ -54,7 +56,6 @@ async function handleEvent(log: Log, contract: ethers.Contract): Promise<void> {
     if (!sellersList[prepareEthAddress(to)]) {
       return
     }
-
     const amount = formatUnits(value, 6)
     console.log(`Transfer from ${from} to ${to} of ${amount} USDC`)
     console.log(log)
@@ -67,13 +68,17 @@ async function handleEvent(log: Log, contract: ethers.Contract): Promise<void> {
       throw new Error(`Buyer or seller not found: ${from}, ${to}`)
     }
 
-    const invoiceItem = await getInvoicedItem(sellerUser.fid, decoded.invoiceId, buyerUser.fid)
+    const invoiceItem = await getInvoiceById(sellerUser.fid, decoded.invoiceId)
 
     if (!invoiceItem) {
-      throw new Error(`Invoice item not found: ${sellerUser.fid}, ${decoded.invoiceId}, ${buyerUser.fid}`)
+      throw new Error(
+        `Invoice item not found: sellerUser: ${sellerUser.fid}, invoiceId: ${decoded.invoiceId}, buyerUser: ${buyerUser.fid}`,
+      )
     }
 
     if (invoiceItem.is_paid) {
+      console.log('Invoice already paid, skip it')
+
       return
     }
 
@@ -86,7 +91,6 @@ async function handleEvent(log: Log, contract: ethers.Contract): Promise<void> {
     if (Number(amount) < Number(contentItem.price)) {
       throw new Error(`The amount is less than the price: ${amount}, ${contentItem.price}`)
     }
-
     await setInvoicePaid(sellerUser.fid, invoiceItem.invoice_id, true)
   } catch (e) {
     console.error('Error in handleEvent', e)
@@ -95,7 +99,6 @@ async function handleEvent(log: Log, contract: ethers.Contract): Promise<void> {
 
 async function start(): Promise<void> {
   const state = await loadState()
-  // todo move the key to the config
   const provider = new ethers.AlchemyProvider('base', 'rPbmLp211IR7wJvYvzvBfF9roILqI2f_')
   const usdcABI = ['event Transfer(address indexed from, address indexed to, uint256 value)']
   const usdcContract = new ethers.Contract(usdcBaseAddress, usdcABI, provider)
@@ -103,18 +106,26 @@ async function start(): Promise<void> {
   setInterval(async () => {
     if ((await getActiveSellersCount()) > sellersList.length) {
       sellersList = await getActiveSellers()
-      console.log('The list of active seller updated.')
+      console.log('The list of active sellers updated.')
     }
   }, 5000)
 
   const filter: Filter = {
     address: usdcBaseAddress,
-    fromBlock: state.latestBlock,
     topics: [id('Transfer(address,address,uint256)')],
   }
 
-  // Fetch historical events
-  await fetchHistoricalEvents(provider, usdcContract, filter, state.latestBlock)
+  let fromBlock = state.latestBlock
+  let toBlock = await provider.getBlockNumber()
+
+  while (fromBlock < toBlock) {
+    const endBlock = Math.min(fromBlock + MAX_BLOCK_RANGE, toBlock)
+    await fetchHistoricalEvents(provider, usdcContract, filter, fromBlock, endBlock)
+    state.latestBlock = endBlock + 1
+    await saveState(state)
+    fromBlock = endBlock + 1
+    toBlock = await provider.getBlockNumber()
+  }
 
   // Subscribe to new events
   provider.on(filter, async (log: Log) => {
