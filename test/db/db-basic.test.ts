@@ -36,8 +36,8 @@ describe('DB Basic', () => {
 
     await upsertUser({ fid: 1, main_eth_address: '111' })
     await upsertUser({ fid: 2, main_eth_address: '222' })
-    await insertContent({ item_id: 1, user_fid: 1, price: '1', data_type: 'text', data_content: 'hello1' })
-    await insertContent({ item_id: 2, user_fid: 1, price: '1.01', data_type: 'text', data_content: 'hello2' })
+    await insertContent({ user_fid: 1, price: '1', data_type: 'text', data_content: 'hello1' })
+    await insertContent({ user_fid: 1, price: '1.01', data_type: 'text', data_content: 'hello2' })
     await insertPurchase({ buyer_fid: 2, seller_fid: 1, item_id: 1, tx_id: '1' })
 
     expect(await isItemPurchased(1, 1, 2)).toBeTruthy()

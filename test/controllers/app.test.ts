@@ -245,6 +245,8 @@ describe('App', () => {
   it('should create item', async () => {
     const sellerFid = 1
     const sellerFidAddress = '000'
+    const buyerFid1 = 2
+    const buyerFid1Address = '111'
 
     const contentItem: ICreateItemRequest = {
       contentType: 'text',
@@ -278,5 +280,55 @@ describe('App', () => {
       status: 'ok',
       itemId: 3,
     })
+
+    mockInputData(buyerFid1, authorizedFrameUrl, buyerFid1Address)
+    const expected1 = {
+      status: 'ok',
+      sellerFid,
+      buyerFid: buyerFid1,
+      invoiceId: 1,
+      isOwn: false,
+      itemId: 3,
+      price: '1.000001',
+    }
+    expect(
+      (await supertestApp.post(`/v1/app/invoice`).send({ sellerFid, itemId: 3, clickData: 'clickData1' })).body,
+    ).toEqual(expected1)
+    // check that new invoice is not created for the same item
+    expect(
+      (await supertestApp.post(`/v1/app/invoice`).send({ sellerFid, itemId: 3, clickData: 'clickData1' })).body,
+    ).toEqual(expected1)
+
+    const expected2 = {
+      status: 'ok',
+      sellerFid,
+      buyerFid: buyerFid1,
+      invoiceId: 2,
+      isOwn: false,
+      itemId: 2,
+      price: '11.100002',
+    }
+    expect(
+      (await supertestApp.post(`/v1/app/invoice`).send({ sellerFid, itemId: 2, clickData: 'clickData1' })).body,
+    ).toEqual(expected2)
+    expect(
+      (await supertestApp.post(`/v1/app/invoice`).send({ sellerFid, itemId: 2, clickData: 'clickData1' })).body,
+    ).toEqual(expected2)
+
+    const expected3 = {
+      status: 'ok',
+      sellerFid,
+      buyerFid: buyerFid1,
+      invoiceId: 3,
+      isOwn: false,
+      itemId: 1,
+      price: '11.100003',
+    }
+    expect(
+      (await supertestApp.post(`/v1/app/invoice`).send({ sellerFid, itemId: 1, clickData: 'clickData1' })).body,
+    ).toEqual(expected3)
+    expect(
+      (await supertestApp.post(`/v1/app/invoice`).send({ sellerFid, itemId: 1, clickData: 'clickData1' })).body,
+    ).toEqual(expected3)
   })
 })

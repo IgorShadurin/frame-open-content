@@ -41,6 +41,7 @@ export async function up(knex: Knex): Promise<void> {
     table.integer('seller_fid').unsigned().references('fid').inTable('user')
     table.integer('item_id').unsigned()
     table.integer('invoice_id').unsigned().index()
+    table.boolean('is_paid').defaultTo(false)
 
     table.datetime('created_at').notNullable()
     table.datetime('updated_at').notNullable()
