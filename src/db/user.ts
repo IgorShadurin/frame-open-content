@@ -9,6 +9,10 @@ export interface IUser {
   updated_at?: string
 }
 
+export async function getUserByFid(fid: number): Promise<IUser | undefined> {
+  return db(USER_TABLE_NAME).where('fid', fid).first()
+}
+
 export async function getUserByEthAddress(ethAddress: string): Promise<IUser | undefined> {
   return db(USER_TABLE_NAME).where('main_eth_address', ethAddress).first()
 }

@@ -5,7 +5,7 @@ import { encodeBase } from '../../../utils/encoder'
 import { getContentItem } from '../../../db/content'
 import { isItemPurchased } from '../../../db/purchase'
 import { IInvoiceRequest } from './interface/IInvoiceRequest'
-import { upsertUser } from '../../../db/user'
+import { getUserByFid, upsertUser } from '../../../db/user'
 import { getUserParams } from './utils/user'
 
 /**
@@ -32,6 +32,12 @@ export default async (
       throw new Error(`Content item not found: sellerFid: ${sellerFid}, itemId: ${itemId}`)
     }
 
+    const seller = await getUserByFid(sellerFid)
+
+    if (!seller) {
+      throw new Error(`Seller not found: sellerFid: ${sellerFid}`)
+    }
+
     let invoiceId: number
 
     if (!invoicedItem) {
@@ -53,6 +59,7 @@ export default async (
       isOwn,
       invoiceId,
       priceRaw: contentItem.price,
+      sellerWallet: seller.main_eth_address,
       price: encodeBase(Number(contentItem.price), invoiceId),
     }
 
