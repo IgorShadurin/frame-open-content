@@ -17,6 +17,14 @@ interface State {
   latestBlock: number
 }
 
+const logEnabled = false
+
+function logMessage(message: string, ...optionalParams: unknown[]): void {
+  if (logEnabled) {
+    console.log(message, ...optionalParams) // eslint-disable-line no-console
+  }
+}
+
 async function loadState(): Promise<State> {
   if (fs.existsSync(STATE_FILE)) {
     const data = fs.readFileSync(STATE_FILE, 'utf8')
@@ -44,9 +52,9 @@ async function fetchHistoricalEvents(
   })
 }
 
-async function handleEvent(log: Log, contract: ethers.Contract): Promise<void> {
+async function handleEvent(eventLog: Log, contract: ethers.Contract): Promise<void> {
   try {
-    const parsedLog = contract.interface.parseLog(log)
+    const parsedLog = contract.interface.parseLog(eventLog)
 
     if (!parsedLog) {
       return
@@ -57,10 +65,10 @@ async function handleEvent(log: Log, contract: ethers.Contract): Promise<void> {
       return
     }
     const amount = formatUnits(value, 6)
-    console.log(`Transfer from ${from} to ${to} of ${amount} USDC`)
-    console.log(log)
+    logMessage(`Transfer from ${from} to ${to} of ${amount} USDC`)
+    logMessage(JSON.stringify(eventLog))
     const decoded = decodeBase(amount)
-    console.log('Decoded:', decoded)
+    logMessage('Decoded:', decoded)
     const buyerUser = await getUserByEthAddress(prepareEthAddress(from))
     const sellerUser = await getUserByEthAddress(prepareEthAddress(to))
 
@@ -77,7 +85,7 @@ async function handleEvent(log: Log, contract: ethers.Contract): Promise<void> {
     }
 
     if (invoiceItem.is_paid) {
-      console.log('Invoice already paid, skip it')
+      logMessage('Invoice already paid, skip it')
 
       return
     }
@@ -93,7 +101,7 @@ async function handleEvent(log: Log, contract: ethers.Contract): Promise<void> {
     }
     await setInvoicePaid(sellerUser.fid, invoiceItem.invoice_id, true)
   } catch (e) {
-    console.error('Error in handleEvent', e)
+    console.error('Error in handleEvent', e) // eslint-disable-line no-console
   }
 }
 
@@ -106,7 +114,7 @@ async function start(): Promise<void> {
   setInterval(async () => {
     if ((await getActiveSellersCount()) > sellersList.length) {
       sellersList = await getActiveSellers()
-      console.log('The list of active sellers updated.')
+      logMessage('The list of active sellers updated.')
     }
   }, 5000)
 
@@ -134,7 +142,7 @@ async function start(): Promise<void> {
     await saveState(state)
   })
 
-  console.log(`Listening for USDC transfers from block ${state.latestBlock}...`)
+  logMessage(`Listening for USDC transfers from block ${state.latestBlock}...`)
 }
 
 start().then()
