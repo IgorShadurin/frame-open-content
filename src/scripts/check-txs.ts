@@ -6,6 +6,9 @@ import { getActiveSellers, getActiveSellersCount, getUserByEthAddress } from '..
 import { decodeBase } from '../utils/encoder'
 import { getInvoiceById, setInvoicePaid } from '../db/invoice'
 import { getContentItem } from '../db/content'
+import { loadConfig } from '../config'
+
+loadConfig()
 
 const usdcBaseAddress = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
 const START_BLOCK = 16913050 // starting block if no state is saved
@@ -106,6 +109,7 @@ async function handleEvent(eventLog: Log, contract: ethers.Contract): Promise<vo
 }
 
 async function start(): Promise<void> {
+  logMessage('Starting...')
   const state = await loadState()
   const provider = new ethers.AlchemyProvider('base', 'rPbmLp211IR7wJvYvzvBfF9roILqI2f_')
   const usdcABI = ['event Transfer(address indexed from, address indexed to, uint256 value)']
