@@ -110,6 +110,8 @@ describe('App', () => {
       itemId: 1,
       sellerFid,
       price: '11.100001',
+      priceRaw: '11.1',
+      sellerWallet: sellerFidAddress,
     }
 
     // response for the second buyer
@@ -172,6 +174,8 @@ describe('App', () => {
       itemId: 1,
       sellerFid,
       price: '11.100001',
+      priceRaw: '11.1',
+      sellerWallet: sellerFidAddress,
     }
     // response for the second buyer
     const response2 = { ...response1, invoiceId: 2, buyerFid: buyerFid2, price: '11.100002' }
@@ -290,6 +294,8 @@ describe('App', () => {
       isOwn: false,
       itemId: 3,
       price: '1.000001',
+      priceRaw: '1',
+      sellerWallet: sellerFidAddress,
     }
     expect(
       (await supertestApp.post(`/v1/app/invoice`).send({ sellerFid, itemId: 3, clickData: 'clickData1' })).body,
@@ -307,6 +313,8 @@ describe('App', () => {
       isOwn: false,
       itemId: 2,
       price: '11.100002',
+      priceRaw: '11.1',
+      sellerWallet: sellerFidAddress,
     }
     expect(
       (await supertestApp.post(`/v1/app/invoice`).send({ sellerFid, itemId: 2, clickData: 'clickData1' })).body,
@@ -323,6 +331,8 @@ describe('App', () => {
       isOwn: false,
       itemId: 1,
       price: '11.100003',
+      priceRaw: '11.1',
+      sellerWallet: sellerFidAddress,
     }
     expect(
       (await supertestApp.post(`/v1/app/invoice`).send({ sellerFid, itemId: 1, clickData: 'clickData1' })).body,

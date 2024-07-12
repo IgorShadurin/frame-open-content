@@ -3,7 +3,6 @@ import { IInvoiceResponse } from './interface/IInvoiceResponse'
 import { insertInvoice, getInvoicedItem } from '../../../db/invoice'
 import { encodeBase } from '../../../utils/encoder'
 import { getContentItem } from '../../../db/content'
-import { isItemPurchased } from '../../../db/purchase'
 import { IInvoiceRequest } from './interface/IInvoiceRequest'
 import { getUserByFid, upsertUser } from '../../../db/user'
 import { getUserParams } from './utils/user'
@@ -24,7 +23,7 @@ export default async (
     const { sellerFid, itemId, fid, ethAddress } = await getUserParams(req)
 
     await upsertUser({ fid, main_eth_address: ethAddress })
-    const isOwn = await isItemPurchased(sellerFid, itemId, fid)
+    // const isOwn = await isItemPurchased(sellerFid, itemId, fid)
     const invoicedItem = await getInvoicedItem(sellerFid, itemId, fid)
     const contentItem = await getContentItem(sellerFid, itemId)
 
@@ -56,7 +55,7 @@ export default async (
       sellerFid,
       buyerFid: fid,
       itemId,
-      isOwn,
+      isOwn: Boolean(invoicedItem?.is_paid),
       invoiceId,
       priceRaw: contentItem.price,
       sellerWallet: seller.main_eth_address,
