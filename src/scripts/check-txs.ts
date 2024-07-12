@@ -136,6 +136,7 @@ async function start(): Promise<void> {
     const endBlock = Math.min(fromBlock + MAX_BLOCK_RANGE, toBlock)
     await fetchHistoricalEvents(provider, usdcContract, filter, fromBlock, endBlock)
     state.latestBlock = endBlock + 1
+    logMessage('New block', state.latestBlock)
     await saveState(state)
     fromBlock = endBlock + 1
     toBlock = await provider.getBlockNumber()
