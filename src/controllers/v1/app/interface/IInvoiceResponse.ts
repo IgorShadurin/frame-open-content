@@ -8,4 +8,6 @@ export interface IInvoiceResponse {
   priceRaw: string
   sellerWallet: string
   invoiceId: number
+  contentType: string
+  content?: string
 }

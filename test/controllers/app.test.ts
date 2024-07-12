@@ -11,6 +11,7 @@ import { insertContent } from '../../src/db/content'
 import { IIsOwnRequest } from '../../src/controllers/v1/app/interface/IIsOwnRequest'
 import { insertPurchase } from '../../src/db/purchase'
 import { ICreateItemRequest } from '../../src/controllers/v1/app/interface/ICreateItemRequest'
+import { IInvoiceResponse } from '../../src/controllers/v1/app/interface/IInvoiceResponse'
 
 const testDb = knex(configurations.development)
 
@@ -102,7 +103,7 @@ describe('App', () => {
     })
     mockInputData(buyerFid1, authorizedFrameUrl, buyerFid1Address)
 
-    const response1 = {
+    const response1: IInvoiceResponse = {
       status: 'ok',
       invoiceId: 1,
       buyerFid: buyerFid1,
@@ -112,6 +113,7 @@ describe('App', () => {
       price: '11.100001',
       priceRaw: '11.1',
       sellerWallet: sellerFidAddress,
+      contentType: 'text',
     }
 
     // response for the second buyer
@@ -166,7 +168,7 @@ describe('App', () => {
       authorizedFrameUrl,
     })
 
-    const response1 = {
+    const response1: IInvoiceResponse = {
       status: 'ok',
       invoiceId: 1,
       buyerFid: buyerFid1,
@@ -176,6 +178,7 @@ describe('App', () => {
       price: '11.100001',
       priceRaw: '11.1',
       sellerWallet: sellerFidAddress,
+      contentType: 'text',
     }
     // response for the second buyer
     const response2 = { ...response1, invoiceId: 2, buyerFid: buyerFid2, price: '11.100002' }
@@ -286,7 +289,7 @@ describe('App', () => {
     })
 
     mockInputData(buyerFid1, authorizedFrameUrl, buyerFid1Address)
-    const expected1 = {
+    const expected1: IInvoiceResponse = {
       status: 'ok',
       sellerFid,
       buyerFid: buyerFid1,
@@ -296,6 +299,7 @@ describe('App', () => {
       price: '1.000001',
       priceRaw: '1',
       sellerWallet: sellerFidAddress,
+      contentType: 'text',
     }
     expect(
       (await supertestApp.post(`/v1/app/invoice`).send({ sellerFid, itemId: 3, clickData: 'clickData1' })).body,
@@ -305,7 +309,7 @@ describe('App', () => {
       (await supertestApp.post(`/v1/app/invoice`).send({ sellerFid, itemId: 3, clickData: 'clickData1' })).body,
     ).toEqual(expected1)
 
-    const expected2 = {
+    const expected2: IInvoiceResponse = {
       status: 'ok',
       sellerFid,
       buyerFid: buyerFid1,
@@ -315,6 +319,7 @@ describe('App', () => {
       price: '11.100002',
       priceRaw: '11.1',
       sellerWallet: sellerFidAddress,
+      contentType: 'text',
     }
     expect(
       (await supertestApp.post(`/v1/app/invoice`).send({ sellerFid, itemId: 2, clickData: 'clickData1' })).body,
@@ -323,7 +328,7 @@ describe('App', () => {
       (await supertestApp.post(`/v1/app/invoice`).send({ sellerFid, itemId: 2, clickData: 'clickData1' })).body,
     ).toEqual(expected2)
 
-    const expected3 = {
+    const expected3: IInvoiceResponse = {
       status: 'ok',
       sellerFid,
       buyerFid: buyerFid1,
@@ -333,6 +338,7 @@ describe('App', () => {
       price: '11.100003',
       priceRaw: '11.1',
       sellerWallet: sellerFidAddress,
+      contentType: 'text',
     }
     expect(
       (await supertestApp.post(`/v1/app/invoice`).send({ sellerFid, itemId: 1, clickData: 'clickData1' })).body,

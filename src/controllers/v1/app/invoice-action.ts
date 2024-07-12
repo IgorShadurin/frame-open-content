@@ -50,16 +50,19 @@ export default async (
       invoiceId = invoicedItem.invoice_id
     }
 
+    const isOwn = Boolean(invoicedItem?.is_paid)
     const result: IInvoiceResponse = {
       status: 'ok',
       sellerFid,
       buyerFid: fid,
       itemId,
-      isOwn: Boolean(invoicedItem?.is_paid),
+      isOwn,
       invoiceId,
       priceRaw: contentItem.price,
       sellerWallet: seller.main_eth_address,
       price: encodeBase(Number(contentItem.price), invoiceId),
+      contentType: contentItem.data_type,
+      content: isOwn ? contentItem.data_content : undefined,
     }
 
     res.json(result)
