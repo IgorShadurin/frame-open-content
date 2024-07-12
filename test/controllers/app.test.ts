@@ -39,7 +39,7 @@ function mockInteractorFunc(func: (neynarApiKey: string, clickData: string) => I
 }
 
 function mockInputData(fid: number, authorizedFrameUrl: string, custodyAddress: string) {
-  mockInteractorFunc((neynarApiKey: string, clickData: string) => {
+  mockInteractorFunc(() => {
     return {
       isValid: true,
       fid,
