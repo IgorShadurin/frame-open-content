@@ -72,18 +72,18 @@ async function handleEvent(eventLog: Log, contract: ethers.Contract): Promise<vo
     logMessage(JSON.stringify(eventLog))
     const decoded = decodeBase(amount)
     logMessage('Decoded:', decoded)
-    const buyerUser = await getUserByEthAddress(prepareEthAddress(from))
+    // const buyerUser = await getUserByEthAddress(prepareEthAddress(from))
     const sellerUser = await getUserByEthAddress(prepareEthAddress(to))
 
-    if (!buyerUser || !sellerUser) {
-      throw new Error(`Buyer or seller not found: ${from}, ${to}`)
+    if (!sellerUser) {
+      throw new Error(`Seller not found: ${to}`)
     }
 
     const invoiceItem = await getInvoiceById(sellerUser.fid, decoded.invoiceId)
 
     if (!invoiceItem) {
       throw new Error(
-        `Invoice item not found: sellerUser: ${sellerUser.fid}, invoiceId: ${decoded.invoiceId}, buyerUser: ${buyerUser.fid}`,
+        `Invoice item not found: sellerUser: ${sellerUser.fid}, invoiceId: ${decoded.invoiceId}, buyerUser: ${from}`,
       )
     }
 
