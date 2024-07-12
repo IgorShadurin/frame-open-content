@@ -20,7 +20,7 @@ interface State {
   latestBlock: number
 }
 
-const logEnabled = false
+const logEnabled = true
 
 function logMessage(message: string, ...optionalParams: unknown[]): void {
   if (logEnabled) {
