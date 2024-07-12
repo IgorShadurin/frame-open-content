@@ -11,7 +11,7 @@ import { loadConfig } from '../config'
 loadConfig()
 
 const usdcBaseAddress = '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913'
-const START_BLOCK = 16913050 // starting block if no state is saved
+const START_BLOCK = 17008000 // starting block if no state is saved
 const STATE_FILE = path.resolve(__dirname, 'state.json')
 const MAX_BLOCK_RANGE = 2000 // Maximum block range to fetch logs
 let sellersList: { [key: string]: number } = {}
