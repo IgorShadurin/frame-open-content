@@ -26,7 +26,7 @@ exit;
 npx knex migrate:latest --env development
 
 # start deployer service via PM2
-pm2 start npm --name "[Testnet] Farcaster Auth API" -- run start
+pm2 start npm --name "[Testnet] Open Content API" -- run start
 
 # OR start the server manually
 npm run start
@@ -55,8 +55,8 @@ mysql -u root -p < ./migrations/mainnet_db.sql
 mysql -u root -p
 
 # and run commands
-CREATE USER 'mainnet_farcaster_auth'@'localhost' IDENTIFIED BY 'STRONG_PASSWORD_HERE';
-GRANT ALL PRIVILEGES ON mainnet_farcaster_auth.* TO 'mainnet_farcaster_auth'@'localhost';
+CREATE USER 'mainnet_open_content'@'localhost' IDENTIFIED BY 'STRONG_PASSWORD_HERE';
+GRANT ALL PRIVILEGES ON mainnet_open_content.* TO 'mainnet_open_content'@'localhost';
 FLUSH PRIVILEGES;
 
 exit;
@@ -65,7 +65,7 @@ exit;
 npx knex migrate:latest --env production
 
 # start deployer service via PM2
-pm2 start npm --name "[Mainnet] Farcaster Auth API" -- run start
+pm2 start npm --name "[Mainnet] Open Content API" -- run start
 
 # OR start the server manually
 npm run start

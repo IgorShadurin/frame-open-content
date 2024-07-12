@@ -52,6 +52,7 @@ export default async (
       itemId,
       isOwn,
       invoiceId,
+      priceRaw: contentItem.price,
       price: encodeBase(Number(contentItem.price), invoiceId),
     }
 

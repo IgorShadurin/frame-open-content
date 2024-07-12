@@ -5,5 +5,6 @@ export interface IInvoiceResponse {
   itemId: number
   isOwn: boolean
   price: string
+  priceRaw: string
   invoiceId: number
 }
