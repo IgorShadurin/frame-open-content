@@ -111,6 +111,7 @@ async function start(): Promise<void> {
   const usdcABI = ['event Transfer(address indexed from, address indexed to, uint256 value)']
   const usdcContract = new ethers.Contract(usdcBaseAddress, usdcABI, provider)
   sellersList = await getActiveSellers()
+  logMessage('sellersList length', sellersList.length)
   setInterval(async () => {
     if ((await getActiveSellersCount()) > sellersList.length) {
       sellersList = await getActiveSellers()
@@ -124,6 +125,7 @@ async function start(): Promise<void> {
   }
 
   let fromBlock = state.latestBlock
+  logMessage('fromBlock', fromBlock)
   let toBlock = await provider.getBlockNumber()
 
   while (fromBlock < toBlock) {
