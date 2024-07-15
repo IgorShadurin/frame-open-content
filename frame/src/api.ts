@@ -4,15 +4,29 @@ if (!baseUrl) {
   throw new Error('API_URL is not defined')
 }
 
-export interface IListResponse {
+export interface IIsOwnResponse {
   status: string
-  requestId: number
-  options: number[]
-  message?: string
+  sellerFid: number
+  fid: number
+  itemId: number
+  isOwn: boolean
+  contentType?: string
+  content?: string
 }
 
-export interface IAnswerResponse {
+export interface IInvoiceResponse {
   status: string
+  sellerFid: number
+  buyerFid: number
+  itemId: number
+  isOwn: boolean
+  price: string
+  priceRaw: string
+  sellerWallet: string
+  invoiceId: number
+  contentType: string
+  content?: string
+  // in case of error
   message?: string
 }
 
@@ -20,76 +34,34 @@ function getUrl(url: string): string {
   return new URL(url, baseUrl).toString()
 }
 
-export async function rejectAuthRequest(requestId: number, messageBytesProof: string): Promise<void> {
-  const url = getUrl(`v1/authorization/reject`)
-  const req = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ requestId, messageBytesProof }),
-  })
-
-  return req.json()
-}
-
-export async function answerAuthRequest(
-  requestId: number,
-  answer: number,
-  messageBytesProof: string,
-): Promise<IAnswerResponse> {
-  const url = getUrl(`v1/authorization/answer`)
-  const req = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ requestId, messageBytesProof, answer }),
-  })
-
-  return req.json()
-}
-
 /**
  * Get the auth data.
- * @param messageBytesProof Message bytes proof
+ * @param sellerFid Seller FID
+ * @param itemId Item ID
+ * @param clickData Click data
  */
-export async function getAuthData(messageBytesProof: string): Promise<IListResponse> {
-  const url = getUrl(`v1/authorization/list?rand=${Math.random()}`)
+export async function getIsOwn(sellerFid: number, itemId: number, clickData: string): Promise<IIsOwnResponse> {
+  const url = getUrl(`v1/app/is-own?rand=${Math.random()}`)
   const req = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ messageBytesProof }),
+    body: JSON.stringify({ sellerFid, itemId, clickData }),
   })
 
   return req.json()
 }
 
-export async function createApp(
-  frameSignerAddressBytes: string,
-  frameUrlBytes: string,
-  frameCallbackUrlBytes: string,
-): Promise<IAnswerResponse> {
-  const url = getUrl(`v1/app/create`)
+export async function getInvoice(sellerFid: number, itemId: number, clickData: string): Promise<IInvoiceResponse> {
+  const url = getUrl(`v1/app/invoice?rand=${Math.random()}`)
   const req = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ frameSignerAddressBytes, frameUrlBytes, frameCallbackUrlBytes }),
+    body: JSON.stringify({ sellerFid, itemId, clickData }),
   })
 
-  const response = (await req.json()) as IAnswerResponse
-
-  if (response.status !== 'ok') {
-    if (response.message) {
-      throw new Error(response.message)
-    } else {
-      throw new Error('Unknown backend error')
-    }
-  }
-
-  return response
+  return req.json()
 }

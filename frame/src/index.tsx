@@ -1,27 +1,17 @@
 import { serveStatic } from '@hono/node-server/serve-static'
-import { Button, FrameContext, Frog, TextInput } from 'frog'
+import { Button, FrameContext, Frog } from 'frog'
 import { devtools } from 'frog/dev'
 import { createSystem } from 'frog/ui'
 import 'dotenv/config'
-import { answerAuthRequest, getAuthData, IListResponse, createApp, rejectAuthRequest } from './api.ts'
-import { v4 as uuidv4 } from 'uuid'
-import { validateEthAddress, validateUrl } from './utils.ts'
+import { getInvoice, IInvoiceResponse } from './api.ts'
+import { parseUnits } from 'ethers'
 
-const BORDER = '1em solid rgb(205,129,255)'
-const AUTH_DOCS = 'https://github.com/DappyKit/farcaster-auth'
-const TITLE = 'DappyKit Auth'
+const BORDER = '1em solid grey'
+// todo replace with the correct URL
+const SELL_URL = 'https://warpcast.com/dappykit/'
+const TITLE = 'Open Content'
 
-function extractAnswer(c: FrameContext<{ State: State }>) {
-  const [requestId, answer] = (c.buttonValue || '').split('|').map(Number)
-
-  if (!requestId || !answer) {
-    throw new Error('Invalid request data. Request ID and answer are required.')
-  }
-
-  return { requestId, answer }
-}
-
-function renderError(c: FrameContext<{ State: State }>, e: Error) {
+function renderError(c: FrameContext<{ State: State }>, e: unknown) {
   return c.res({
     title: TITLE,
     image: (
@@ -37,11 +27,7 @@ function renderError(c: FrameContext<{ State: State }>, e: Error) {
         </VStack>
       </Box>
     ),
-    intents: [
-      <Button value="start" action="/">
-        🏠 Home
-      </Button>,
-    ],
+    intents: [<Button action="/">🏠 Home</Button>],
   })
 }
 
@@ -50,6 +36,7 @@ export const { Box, Heading, Text, VStack, vars } = createSystem({
     white: 'white',
     black: 'black',
     fcPurple: 'rgb(138, 99, 210)',
+    blue500: '#cbe7ff',
   },
   fonts: {
     default: [
@@ -72,34 +59,6 @@ interface State {
   authAnswer: number
 }
 
-interface RegisterAppData {
-  ethAddress: string
-  ethAddressBytes: string
-  frameUrl: string
-  frameUrlBytes: string
-  callbackUrl: string
-  callbackUrlBytes: string
-}
-
-const sessions = new Map<string, RegisterAppData>()
-
-function updateSession(id: string, data: Partial<RegisterAppData>) {
-  let session = sessions.get(id)
-
-  if (!session) {
-    session = {
-      ethAddress: '',
-      ethAddressBytes: '',
-      frameUrl: '',
-      frameUrlBytes: '',
-      callbackUrl: '',
-      callbackUrlBytes: '',
-    }
-  }
-
-  sessions.set(id, { ...session, ...data })
-}
-
 export const app = new Frog<{ State: State }>({
   initialState: {
     registerAppSession: '',
@@ -112,263 +71,188 @@ export const app = new Frog<{ State: State }>({
 })
 
 app.use('/*', serveStatic({ root: './public' }))
-
 app.frame('/', async c => {
   return c.res({
     title: TITLE,
     image: (
       <Box grow alignVertical="center" backgroundColor="white" padding="32" border={BORDER}>
         <VStack gap="4">
-          <Heading color="fcPurple" align="center" size="64">
-            DappyKit Auth
+          <Heading color="fcPurple" align="center" size="48">
+            Oops!
           </Heading>
 
           <Text align="center" size="18">
-            Check your auth requests.
+            Please use the link provided by the content creator to access the content.
           </Text>
         </VStack>
       </Box>
     ),
-    intents: [
-      <Button value="start" action="/requests">
-        🐙 Check Requests
-      </Button>,
-    ],
+    intents: [<Button action="/">🏠 Home</Button>],
   })
 })
 
-app.frame('/requests', async c => {
-  let requestData: IListResponse | undefined
-  let isSuccessResponse = false
+app.frame('/open/:price/:sellerFid/:itemId', async c => {
   try {
-    const {
-      trustedData: { messageBytes },
-    } = await c.req.json()
-    requestData = await getAuthData(messageBytes)
-    isSuccessResponse = requestData && requestData.status === 'ok'
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('/requests method', (e as Error).message)
-  }
+    const { price, sellerFid, itemId } = c.req.param()
+    const animation = '/animation/2.gif'
 
-  let intents = []
-
-  if (requestData && isSuccessResponse) {
-    const getAnswerId = (answer: number) => {
-      return `${requestData.requestId.toString()}|${answer.toString()}`
+    if (!price || isNaN(Number(price))) {
+      throw new Error('Price is not defined')
     }
 
-    for (const option of requestData.options) {
-      intents.push(
-        <Button value={getAnswerId(option)} action="/allow-request">
-          {option.toString()}
-        </Button>,
-      )
+    if (!sellerFid || isNaN(Number(sellerFid))) {
+      throw new Error('sellerFid is not defined')
+    }
+
+    if (!itemId || isNaN(Number(itemId))) {
+      throw new Error('itemId is not defined')
+    }
+
+    return c.res({
+      title: TITLE,
+      imageAspectRatio: '1:1',
+      image: animation,
+      intents: [<Button action={`/unlock/${sellerFid}/${itemId}`}>⭐ Unlock for ${price}</Button>],
+    })
+  } catch (e) {
+    return renderError(c, e)
+  }
+})
+
+app.frame('/unlock/:sellerFid/:itemId', async c => {
+  const { sellerFid, itemId } = c.req.param()
+  const sellerFidNumber = Number(sellerFid)
+  const itemIdNumber = Number(itemId)
+
+  if (!sellerFid || isNaN(sellerFidNumber)) {
+    throw new Error('sellerFid is not defined')
+  }
+
+  if (!itemId || isNaN(itemIdNumber)) {
+    throw new Error('itemId is not defined')
+  }
+
+  try {
+    let invoiceData: IInvoiceResponse | undefined
+    try {
+      const {
+        trustedData: { messageBytes },
+      } = await c.req.json()
+
+      invoiceData = await getInvoice(sellerFidNumber, itemIdNumber, messageBytes)
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('/unlock method', (e as Error).message)
+    }
+
+    if (!invoiceData || invoiceData.status !== 'ok') {
+      throw new Error(invoiceData?.message ?? 'Invoice data is not found')
+    }
+
+    const isBought = invoiceData.isOwn
+    let intents: unknown[] = []
+
+    if (!isBought) {
+      intents = [
+        <Button.Transaction
+          action={`/unlock/${sellerFid}/${itemId}`}
+          target={`/buy/${invoiceData.price}/0x${invoiceData.sellerWallet}`}
+        >
+          🛒 Buy
+        </Button.Transaction>,
+      ]
     }
 
     intents.push(
-      <Button value={getAnswerId(999)} action="/reject-request">
-        ❌ Reject
-      </Button>,
-    )
-  } else {
-    intents = [
-      <Button value="start" action="/register-app">
-        ✍️ Register App
-      </Button>,
-      <Button.Link href={AUTH_DOCS}>📄 Docs</Button.Link>,
-      <Button value="start" action="/requests">
+      <Button value={c.buttonValue} action={`/unlock/${sellerFid}/${itemIdNumber}`}>
         🔄️ Refresh
       </Button>,
-    ]
-  }
+      <Button.Link href={SELL_URL}>💰 Sell</Button.Link>,
+    )
 
-  return c.res({
-    title: TITLE,
-    image: (
-      <Box grow alignVertical="center" backgroundColor="white" padding="32" border={BORDER}>
-        <VStack gap="4">
-          <Heading color="fcPurple" align="center" size="48">
-            {isSuccessResponse && <span>Choose the correct number</span>}
-            {!isSuccessResponse && <span>No requests</span>}
+    let content = (
+      <VStack gap="6">
+        <Heading color="white" align="center" size="48">
+          Content Purchase
+        </Heading>
+
+        <Text size="32" align="center" color="white" weight="800">
+          <span style={{ marginTop: 50 }}>
+            <img src="/usdc.png" alt="USDC" width={70} style={{ marginRight: 15 }} /> ~{invoiceData.priceRaw}
+          </span>
+        </Text>
+
+        <Text size="12" color="white" align="center">
+          <span style={{ marginTop: 100 }}>After payment, the content will be available to you within ~1 minute.</span>
+        </Text>
+      </VStack>
+    )
+
+    if (isBought) {
+      content = (
+        <VStack gap="6">
+          <Heading color="white" align="center" size="24">
+            Purchased Content
           </Heading>
 
-          <Text align="center" size="18">
-            {isSuccessResponse && (
-              <span>By answering the challenge, you will allow the app to access your isolated data.</span>
-            )}
-            {!isSuccessResponse && <span>Requests will appear after using third-party applications.</span>}
+          <Text size="20" color="white" align="center">
+            {invoiceData.content}
           </Text>
         </VStack>
-      </Box>
-    ),
-    intents,
-  })
-})
-
-app.frame('/allow-request', async c => {
-  const {
-    trustedData: { messageBytes },
-  } = await c.req.json()
-
-  const { requestId, answer } = extractAnswer(c)
-  const response = await answerAuthRequest(requestId, answer, messageBytes)
-  const isCorrect = response.status === 'ok'
-
-  return c.res({
-    title: TITLE,
-    image: (
-      <Box grow alignVertical="center" backgroundColor="white" padding="32" border={BORDER}>
-        <VStack gap="4">
-          <Heading color="fcPurple" align="center" size="48">
-            {isCorrect ? '🎉 Success' : '❌ Incorrect'}
-          </Heading>
-
-          <Text align="center" size="18">
-            {isCorrect ? 'You can return to the app and use it.' : 'You need to create a new request in the app.'}
-          </Text>
-        </VStack>
-      </Box>
-    ),
-    intents: [
-      <Button value="start" action="/">
-        🏠 Home
-      </Button>,
-    ],
-  })
-})
-
-app.frame('/reject-request', async c => {
-  const {
-    trustedData: { messageBytes },
-  } = await c.req.json()
-
-  const { requestId } = extractAnswer(c)
-  await rejectAuthRequest(requestId, messageBytes)
-
-  return c.res({
-    title: TITLE,
-    image: (
-      <Box grow alignVertical="center" backgroundColor="white" padding="32" border={BORDER}>
-        <VStack gap="4">
-          <Heading color="fcPurple" align="center" size="48">
-            ❌ The request has been rejected.
-          </Heading>
-        </VStack>
-      </Box>
-    ),
-    intents: [
-      <Button value="start" action="/">
-        🏠 Home
-      </Button>,
-    ],
-  })
-})
-
-app.frame('/register-app', async c => {
-  try {
-    const {
-      trustedData: { messageBytes },
-    } = await c.req.json()
-
-    const SCREEN_START = 'start'
-    const SCREEN_SAVE_ETH = 'save-eth'
-    const SCREEN_SAVE_FRAME = 'save-frame'
-    const SCREEN_SAVE_CALLBACK = 'save-callback'
-    const previousScreen = c.previousButtonValues?.[0] || 'start'
-    const isFinal = previousScreen === 'save-frame'
-    let nextScreen = SCREEN_SAVE_ETH
-
-    let intents = [
-      <Button value="start" action="/">
-        ❌ Cancel
-      </Button>,
-    ]
-
-    const { inputText, deriveState } = c
-
-    let currentSession = uuidv4()
-    deriveState(previousState => {
-      if (previousScreen === SCREEN_START) {
-        previousState.registerAppSession = currentSession
-      } else {
-        currentSession = previousState.registerAppSession
-      }
-    })
-
-    if (previousScreen === SCREEN_START) {
-      intents.unshift(<TextInput placeholder="Enter ETH address" />)
-    } else if (previousScreen === SCREEN_SAVE_ETH) {
-      nextScreen = SCREEN_SAVE_FRAME
-      intents.unshift(<TextInput placeholder="Enter Frame URL" />)
-      updateSession(currentSession, { ethAddress: inputText || '', ethAddressBytes: messageBytes })
-    } else if (previousScreen === SCREEN_SAVE_FRAME) {
-      nextScreen = SCREEN_SAVE_CALLBACK
-      intents.unshift(<TextInput placeholder="Enter Webhook URL" />)
-      updateSession(currentSession, { frameUrl: inputText || '', frameUrlBytes: messageBytes })
-    } else if (previousScreen === SCREEN_SAVE_CALLBACK) {
-      updateSession(currentSession, { callbackUrl: inputText || '', callbackUrlBytes: messageBytes })
-    }
-
-    if (previousScreen === SCREEN_SAVE_CALLBACK) {
-      const sessionData = sessions.get(currentSession)
-
-      if (!sessionData) {
-        throw new Error('Invalid session data')
-      }
-
-      validateEthAddress(sessionData.ethAddress)
-      validateUrl(sessionData.frameUrl)
-      validateUrl(sessionData.callbackUrl)
-
-      const { ethAddressBytes, frameUrlBytes, callbackUrlBytes } = sessionData
-      const createResponse = await createApp(ethAddressBytes, frameUrlBytes, callbackUrlBytes)
-
-      if (createResponse.status !== 'ok') {
-        throw new Error(`Failed to create an app: ${JSON.stringify(createResponse)}`)
-      }
-      sessions.delete(currentSession)
-
-      intents = [
-        <Button value={nextScreen} action="/">
-          ✅ Done
-        </Button>,
-      ]
-    } else {
-      intents.unshift(
-        <Button value={nextScreen} action="/register-app">
-          {isFinal ? '✅' : '➡️'} Save
-        </Button>,
       )
     }
 
     return c.res({
       title: TITLE,
+      imageAspectRatio: '1.91:1',
       image: (
-        <Box grow alignVertical="center" backgroundColor="white" padding="32" border={BORDER}>
-          <VStack gap="4">
-            <Heading color="fcPurple" align="center" size="48">
-              Register your app
-            </Heading>
-
-            <Text align="center" size="18">
-              Before adding your application, read the documentation.
-            </Text>
-
-            <Text align="center" size="18">
-              {previousScreen === SCREEN_START && 'Enter your Ethereum address'}
-              {previousScreen === SCREEN_SAVE_ETH && 'Enter your Frame URL'}
-              {previousScreen === SCREEN_SAVE_FRAME && 'Enter your Webhook URL'}
-              {previousScreen === SCREEN_SAVE_CALLBACK && 'Your application registered successfully!'}
-            </Text>
-          </VStack>
+        <Box grow alignVertical="center" backgroundColor="black" padding="32" border={BORDER}>
+          {content}
         </Box>
       ),
       intents,
     })
   } catch (e) {
-    return renderError(c, e as Error)
+    return renderError(c, e)
   }
+})
+
+app.transaction('/buy/:price/:to', c => {
+  const price = c.req.param('price')
+  const to = c.req.param('to')
+  const abi = [
+    {
+      constant: false,
+      inputs: [
+        {
+          name: 'to',
+          type: 'address',
+        },
+        {
+          name: 'value',
+          type: 'uint256',
+        },
+      ],
+      name: 'transfer',
+      outputs: [
+        {
+          name: '',
+          type: 'bool',
+        },
+      ],
+      type: 'function',
+    },
+  ]
+
+  return c.contract({
+    abi,
+    chainId: 'eip155:8453',
+    functionName: 'transfer',
+    args: [to, parseUnits(price, 6)],
+    // USDC on Base contract address
+    to: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+    value: 0n,
+  })
 })
 
 if (process.env.ENV === 'development') {
