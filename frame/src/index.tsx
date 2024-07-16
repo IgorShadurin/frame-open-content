@@ -9,6 +9,7 @@ import { parseUnits } from 'ethers'
 const BORDER = '1em solid grey'
 const SELL_URL = 'https://open.web4.build/?clickData='
 const TITLE = 'Open Content'
+const REDIRECT_ALL = 'https://warpcast.com/dappykit'
 
 function renderError(c: FrameContext<{ State: State }>, e: unknown) {
   return c.res({
@@ -73,6 +74,7 @@ app.use('/*', serveStatic({ root: './public' }))
 app.frame('/', async c => {
   return c.res({
     title: TITLE,
+    browserLocation: REDIRECT_ALL,
     image: (
       <Box grow alignVertical="center" backgroundColor="white" padding="32" border={BORDER}>
         <VStack gap="4">
@@ -109,6 +111,7 @@ app.frame('/open/:price/:sellerFid/:itemId', async c => {
 
     return c.res({
       title: TITLE,
+      browserLocation: REDIRECT_ALL,
       imageAspectRatio: '1:1',
       image: animation,
       intents: [<Button action={`/unlock/${sellerFid}/${itemId}`}>⭐ Unlock for ${price}</Button>],
@@ -205,6 +208,7 @@ app.frame('/unlock/:sellerFid/:itemId', async c => {
 
     return c.res({
       title: TITLE,
+      browserLocation: REDIRECT_ALL,
       imageAspectRatio: '1.91:1',
       image: (
         <Box grow alignVertical="center" backgroundColor="black" padding="32" border={BORDER}>
