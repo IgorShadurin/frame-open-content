@@ -1,0 +1,16 @@
+body {
+    font-family: 'Roboto', sans-serif;
+}
+
+.text-area-with-counter {
+    position: relative;
+    padding-bottom: 24px; /* Extra padding to make room for the counter */
+}
+
+.textarea-counter {
+    position: absolute;
+    bottom: 8px;
+    right: 12px;
+    font-size: 0.875em;
+    color: #6c757d;
+}
