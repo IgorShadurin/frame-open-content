@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "ENV=development frog dev",
-    "start": "frog -p 5181"
+    "start": "frog -p 5199"
   },
   "dependencies": {
     "@hono/node-server": "^1.9.1",
