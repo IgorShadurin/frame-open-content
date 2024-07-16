@@ -30,6 +30,7 @@ export default async (
     const result: ICreateItemResponse = {
       status: 'ok',
       itemId,
+      shareUrl: `https://frame-open.web4.build/open/${price}/${fid}/${itemId}`,
     }
 
     res.json(result)

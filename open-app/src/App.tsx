@@ -63,7 +63,7 @@ const App: React.FC = () => {
       }
 
       const data = await response.json()
-      setSuccessUrl(data.url)
+      setSuccessUrl(data.shareUrl)
     } catch (err) {
       setError((err as Error).message)
     } finally {
