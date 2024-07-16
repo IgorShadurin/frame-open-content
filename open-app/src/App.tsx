@@ -13,7 +13,7 @@ const App: React.FC = () => {
   const [successUrl, setSuccessUrl] = useState<string | null>(null)
 
   const getMessage = () => {
-    return encodeURIComponent(`Pay some USDC on Base to unlock the content.`)
+    return encodeURIComponent(`Pay ${price} USDC on Base to unlock the content.`)
   }
 
   useEffect(() => {
