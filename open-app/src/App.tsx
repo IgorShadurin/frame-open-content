@@ -13,10 +13,10 @@ const App: React.FC = () => {
   const [successUrl, setSuccessUrl] = useState<string | null>(null)
 
   useEffect(() => {
-    // get query params clickData, store it in state and remove it from the URL
     const url = new URL(window.location.href)
     const clickData = url.searchParams.get('clickData')
     if (clickData) {
+      console.log('clickData', clickData)
       setClickData(clickData)
       url.searchParams.delete('clickData')
       window.history.replaceState({}, '', url.toString())
