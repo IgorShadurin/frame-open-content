@@ -148,7 +148,7 @@ const App: React.FC = () => {
                 </Button>
               </InputGroup>
               <div className="mt-3 d-flex justify-content-center">
-                <a href={`https://warpcast.com/~/compose?text=${encodeURIComponent(`Pay ${price} USDC on Base to unlock the content.`)}&embeds[]=${successUrl}`} target="_blank"
+                <a href={`https://warpcast.com/~/compose?text=${encodeURIComponent(`Pay some USDC on Base to unlock the content.`)}&embeds[]=${successUrl}`} target="_blank"
                    rel="noreferrer" className="btn btn-link p-0">
                   Share on Warpcast
                 </a>
