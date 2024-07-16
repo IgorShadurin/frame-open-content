@@ -64,6 +64,8 @@ const App: React.FC = () => {
 
       const data = await response.json()
       setSuccessUrl(data.shareUrl)
+      setTextInput('')
+      setPrice(1.0)
     } catch (err) {
       setError((err as Error).message)
     } finally {
