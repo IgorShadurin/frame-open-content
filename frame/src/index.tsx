@@ -7,8 +7,7 @@ import { getInvoice, IInvoiceResponse } from './api.ts'
 import { parseUnits } from 'ethers'
 
 const BORDER = '1em solid grey'
-// todo replace with the correct URL
-const SELL_URL = 'https://warpcast.com/dappykit/'
+const SELL_URL = 'https://open.web4.build/?clickData='
 const TITLE = 'Open Content'
 
 function renderError(c: FrameContext<{ State: State }>, e: unknown) {
@@ -120,26 +119,28 @@ app.frame('/open/:price/:sellerFid/:itemId', async c => {
 })
 
 app.frame('/unlock/:sellerFid/:itemId', async c => {
-  const { sellerFid, itemId } = c.req.param()
-  const sellerFidNumber = Number(sellerFid)
-  const itemIdNumber = Number(itemId)
-
-  if (!sellerFid || isNaN(sellerFidNumber)) {
-    throw new Error('sellerFid is not defined')
-  }
-
-  if (!itemId || isNaN(itemIdNumber)) {
-    throw new Error('itemId is not defined')
-  }
-
   try {
+    const { sellerFid, itemId } = c.req.param()
+    const sellerFidNumber = Number(sellerFid)
+    const itemIdNumber = Number(itemId)
+
+    if (!sellerFid || isNaN(sellerFidNumber)) {
+      throw new Error('sellerFid is not defined')
+    }
+
+    if (!itemId || isNaN(itemIdNumber)) {
+      throw new Error('itemId is not defined')
+    }
+
     let invoiceData: IInvoiceResponse | undefined
+    let bytes
     try {
       const {
         trustedData: { messageBytes },
       } = await c.req.json()
 
       invoiceData = await getInvoice(sellerFidNumber, itemIdNumber, messageBytes)
+      bytes = messageBytes
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('/unlock method', (e as Error).message)
@@ -167,7 +168,7 @@ app.frame('/unlock/:sellerFid/:itemId', async c => {
       <Button value={c.buttonValue} action={`/unlock/${sellerFid}/${itemIdNumber}`}>
         🔄️ Refresh
       </Button>,
-      <Button.Link href={SELL_URL}>💰 Sell</Button.Link>,
+      <Button.Link href={`${SELL_URL}${bytes}`}>💰 Sell</Button.Link>,
     )
 
     let content = (
