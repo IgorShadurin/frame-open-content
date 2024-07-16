@@ -186,7 +186,7 @@ app.frame('/unlock/:sellerFid/:itemId', async c => {
           </span>
         </Text>
 
-        <Text size="24" color="white" align="center">
+        <Text size="20" color="white" align="center">
           <span style={{ marginTop: 100 }}>After payment, the content will be available to you within ~1 minute.</span>
         </Text>
       </VStack>
