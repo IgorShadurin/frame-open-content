@@ -12,10 +12,6 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [successUrl, setSuccessUrl] = useState<string | null>(null)
 
-  const getMessage = () => {
-    return encodeURIComponent(`Pay ${price} USDC on Base to unlock the content.`)
-  }
-
   useEffect(() => {
     const url = new URL(window.location.href)
     const clickData = url.searchParams.get('clickData')
@@ -152,7 +148,7 @@ const App: React.FC = () => {
                 </Button>
               </InputGroup>
               <div className="mt-3 d-flex justify-content-center">
-                <a href={`https://warpcast.com/~/compose?text=${getMessage()}&embeds[]=${successUrl}`} target="_blank"
+                <a href={`https://warpcast.com/~/compose?text=${encodeURIComponent(`Pay ${price} USDC on Base to unlock the content.`)}&embeds[]=${successUrl}`} target="_blank"
                    rel="noreferrer" className="btn btn-link p-0">
                   Share on Warpcast
                 </a>
