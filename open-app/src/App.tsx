@@ -43,7 +43,7 @@ const App: React.FC = () => {
           data: {
             cast: {
               // parent: "0x9f49f87f85b21b29921bbe2fe6076e39005faf75",
-              text: '⭐ I have prepared something interesting! Click the Unlock button!',
+              text: '⭐ I have prepared something interesting! Click the Unlock button! After the payment in USDC on Base, the content will be unlocked for viewing.',
               embeds: [successUrl],
             },
           },
