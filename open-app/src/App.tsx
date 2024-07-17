@@ -176,13 +176,13 @@ const App: React.FC = () => {
             </Collapse>
           </div>
 
-          <div className="mb-4 d-flex justify-content-center">
-            <div className="d-flex align-items-center">
-              Powered by
-              <img src="/bot.png" alt="Web4.Build Bot" width={30} style={{ marginLeft: 8, marginRight: 8 }} />
-              <p className="m-0"><a href="https://web4.build" target="_blank" rel="noreferrer">Web4.Build</a></p>
-            </div>
-          </div>
+          {/*<div className="mb-4 d-flex justify-content-center">*/}
+          {/*  <div className="d-flex align-items-center">*/}
+          {/*    Powered by*/}
+          {/*    <img src="/bot.png" alt="Web4.Build Bot" width={30} style={{ marginLeft: 8, marginRight: 8 }} />*/}
+          {/*    <p className="m-0"><a href="https://web4.build" target="_blank" rel="noreferrer">Web4.Build</a></p>*/}
+          {/*  </div>*/}
+          {/*</div>*/}
 
         </div>}
     </div>

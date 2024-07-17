@@ -22,8 +22,8 @@ export default async (
   try {
     const { sellerFid, itemId, fid, ethAddress } = await getUserParams(req)
 
+    // todo open the content for owner by default, do not create an invoice for him
     await upsertUser({ fid, main_eth_address: ethAddress })
-    // const isOwn = await isItemPurchased(sellerFid, itemId, fid)
     const invoicedItem = await getInvoicedItem(sellerFid, itemId, fid)
     const contentItem = await getContentItem(sellerFid, itemId)
 
