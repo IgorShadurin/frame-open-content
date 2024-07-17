@@ -7,7 +7,7 @@ const App: React.FC = () => {
   const [clickData, setClickData] = useState('')
   const [sessionData, setSessionData] = useState('')
   const [textInput, setTextInput] = useState('')
-  const [price, setPrice] = useState(1.0)
+  const [price, setPrice] = useState<number | undefined>(1.0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showMore, setShowMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -60,11 +60,37 @@ const App: React.FC = () => {
     }
   }
 
+  const isCorrectPrice = (value: number): boolean => {
+    if (value === 0) {
+      return false
+    }
+
+    // Check if value is within the valid range
+    if (isNaN(value) || value < 0.1 || value > 99.1) {
+      return false
+    }
+
+    // Convert the value to a string
+    const valueString = value.toString()
+
+    // Check if the number has only one digit after the decimal point
+    const decimalIndex = valueString.indexOf('.')
+    if (decimalIndex !== -1 && valueString.length - decimalIndex - 1 !== 1) {
+      return false
+    }
+
+    // Check if the number has only one digit after the comma (optional)
+    const commaIndex = valueString.indexOf(',')
+    if (commaIndex !== -1 && valueString.length - commaIndex - 1 !== 1) {
+      return false
+    }
+
+    return true
+  }
+
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value)
-    if (!isNaN(value) && value >= 0.1 && value <= 99.1) {
-      setPrice(value)
-    }
+    setPrice(value)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -73,14 +99,18 @@ const App: React.FC = () => {
     setError(null)
     setSuccessUrl(null)
 
+    if (!isCorrectPrice(price || 0)) {
+      alert('Invalid price')
+      return
+    }
+
     const formData = {
       contentType: 'text',
       contentData: textInput,
-      price: price.toString(),
+      price: price!.toString(),
       clickData: '',
       sessionId: '',
     }
-
 
     if (clickData) {
       formData.clickData = clickData
@@ -156,7 +186,7 @@ const App: React.FC = () => {
                 <InputGroup.Text>USDC</InputGroup.Text>
                 <FormControl
                   type="number"
-                  value={price}
+                  value={!Number.isNaN(price) ? price : ''}
                   onChange={handlePriceChange}
                   min={0.1}
                   max={99.1}
@@ -169,7 +199,7 @@ const App: React.FC = () => {
             <Button
               variant="outline-primary"
               type="submit"
-              disabled={isSubmitting || textInput.length < 3}
+              disabled={isSubmitting || textInput.length < 3 || !isCorrectPrice(price || 0)}
               className="mt-3 w-100"
             >
               {isSubmitting ? 'Submitting...' : 'Submit'}
