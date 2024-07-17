@@ -5,6 +5,7 @@ import './App.css'
 
 const App: React.FC = () => {
   const [clickData, setClickData] = useState('')
+  const [sessionData, setSessionData] = useState('')
   const [textInput, setTextInput] = useState('')
   const [price, setPrice] = useState(1.0)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -15,11 +16,22 @@ const App: React.FC = () => {
   useEffect(() => {
     const url = new URL(window.location.href)
     const clickData = url.searchParams.get('clickData')
+    const session = url.searchParams.get('session')
+    const initialText = url.searchParams.get('text')
     if (clickData) {
       console.log('clickData', clickData)
       setClickData(clickData)
       url.searchParams.delete('clickData')
       window.history.replaceState({}, '', url.toString())
+    } else if (session) {
+      console.log('session', session)
+      setSessionData(session)
+      url.searchParams.delete('session')
+      window.history.replaceState({}, '', url.toString())
+    }
+
+    if (initialText) {
+      setTextInput(initialText)
     }
   }, [])
 
@@ -46,7 +58,18 @@ const App: React.FC = () => {
       contentType: 'text',
       contentData: textInput,
       price: price.toString(),
-      clickData,
+      clickData: '',
+      sessionId: ''
+    }
+
+
+    if (clickData){
+      formData.clickData = clickData
+    } else if (sessionData){
+      formData.sessionId = sessionData
+    } else {
+      alert('No clickData or sessionData found. Contact support.')
+      return
     }
 
     try {

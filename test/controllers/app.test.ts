@@ -12,6 +12,8 @@ import { IIsOwnRequest } from '../../src/controllers/v1/app/interface/IIsOwnRequ
 import { insertPurchase } from '../../src/db/purchase'
 import { ICreateItemRequest } from '../../src/controllers/v1/app/interface/ICreateItemRequest'
 import { IInvoiceResponse } from '../../src/controllers/v1/app/interface/IInvoiceResponse'
+import { v4 as uuidv4 } from 'uuid'
+import { setSessionInfo } from '../../src/utils/clicks'
 
 const testDb = knex(configurations.development)
 
@@ -278,14 +280,17 @@ describe('App', () => {
     expect((await supertestApp.post(`/v1/app/create-item`).send(contentItem)).body).toEqual({
       status: 'ok',
       itemId: 1,
+      shareUrl: 'https://frame-open.web4.build/open/11.1/1/1',
     })
     expect((await supertestApp.post(`/v1/app/create-item`).send(contentItem)).body).toEqual({
       status: 'ok',
       itemId: 2,
+      shareUrl: 'https://frame-open.web4.build/open/11.1/1/2',
     })
     expect((await supertestApp.post(`/v1/app/create-item`).send(contentItem2)).body).toEqual({
       status: 'ok',
       itemId: 3,
+      shareUrl: 'https://frame-open.web4.build/open/1/1/3',
     })
 
     mockInputData(buyerFid1, authorizedFrameUrl, buyerFid1Address)
@@ -371,11 +376,41 @@ describe('App', () => {
       expect((await supertestApp.post(`/v1/app/create-item`).send(contentItem)).body).toEqual({
         status: 'ok',
         itemId: 1,
+        shareUrl: `https://frame-open.web4.build/open/1/${i}/1`,
       })
     }
 
     expect(await getActiveSellersCount()).toEqual(maxUsers)
     expect(await getActiveSellers()).toEqual(expectedResult)
     expect(Object.keys(expectedResult)).toHaveLength(maxUsers)
+  })
+
+  it('should create item with session', async () => {
+    const sellerFid = 1
+    const sellerFidAddress = '000'
+
+    await upsertUser({ fid: sellerFid, main_eth_address: '111' })
+    const sessionId = uuidv4()
+    await setSessionInfo(sessionId, sellerFid)
+
+    const contentItem: ICreateItemRequest = {
+      contentType: 'text',
+      contentData: 'hello1',
+      price: '11.1',
+      sessionId,
+    }
+
+    const authorizedFrameUrl = 'https://auth-frame.com'
+    setConfigData({
+      ...getConfigData(),
+      authorizedFrameUrl,
+    })
+
+    mockInputData(sellerFid, authorizedFrameUrl, sellerFidAddress)
+    expect((await supertestApp.post(`/v1/app/create-item`).send(contentItem)).body).toEqual({
+      status: 'ok',
+      itemId: 1,
+      shareUrl: 'https://frame-open.web4.build/open/11.1/1/1',
+    })
   })
 })
