@@ -98,7 +98,7 @@ const App: React.FC = () => {
 
   return (
     <div className="container mt-4 d-flex justify-content-center">
-      {!clickData && <div style={{ maxWidth: '600px', width: '100%' }}>
+      {!(clickData || sessionData) && <div style={{ maxWidth: '600px', width: '100%' }}>
         <Alert variant="warning">
           No user data found. Please open the app from Farcaster or send Email to <a
           href="mailto:igor.shadurin@gmail.com?subject=Open%20Content%20Frame%20Issue">igor.shadurin@gmail.com</a>.
@@ -106,7 +106,7 @@ const App: React.FC = () => {
       </div>}
 
       {
-        clickData && <div style={{ maxWidth: '600px', width: '100%' }}>
+        (clickData || sessionData) && <div style={{ maxWidth: '600px', width: '100%' }}>
           <div className="mb-4">
             <div className="d-flex align-items-center">
               <img src="/bot.png" alt="Web4.Build Bot" width={30} style={{ marginRight: 8 }} />
