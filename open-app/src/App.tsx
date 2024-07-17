@@ -35,6 +35,25 @@ const App: React.FC = () => {
     }
   }, [])
 
+  useEffect(() => {
+    if (successUrl) {
+      try {
+        window.parent.postMessage({
+          type: 'createCast',
+          data: {
+            cast: {
+              // parent: "0x9f49f87f85b21b29921bbe2fe6076e39005faf75",
+              text: 'I have prepared something interesting! Click the Unlock button!',
+              embeds: [successUrl],
+            },
+          },
+        }, '*')
+      } catch (e) {
+
+      }
+    }
+  }, [successUrl])
+
   const handleTextInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     if (e.target.value.length <= 400) {
       setTextInput(e.target.value)
@@ -59,13 +78,13 @@ const App: React.FC = () => {
       contentData: textInput,
       price: price.toString(),
       clickData: '',
-      sessionId: ''
+      sessionId: '',
     }
 
 
-    if (clickData){
+    if (clickData) {
       formData.clickData = clickData
-    } else if (sessionData){
+    } else if (sessionData) {
       formData.sessionId = sessionData
     } else {
       alert('No clickData or sessionData found. Contact support.')
@@ -158,7 +177,7 @@ const App: React.FC = () => {
           </Form>
 
           {error && <Alert variant="danger" className="mt-3">{error}</Alert>}
-          {successUrl && (
+          {(successUrl && clickData) && (
             <>
               <InputGroup className="mt-3">
                 <FormControl
@@ -171,8 +190,10 @@ const App: React.FC = () => {
                 </Button>
               </InputGroup>
               <div className="mt-3 d-flex justify-content-center">
-                <a href={`https://warpcast.com/~/compose?text=${encodeURIComponent(`Pay some USDC on Base to unlock the content.`)}&embeds[]=${successUrl}`} target="_blank"
-                   rel="noreferrer" className="btn btn-link p-0">
+                <a
+                  href={`https://warpcast.com/~/compose?text=${encodeURIComponent(`Pay some USDC on Base to unlock the content.`)}&embeds[]=${successUrl}`}
+                  target="_blank"
+                  rel="noreferrer" className="btn btn-link p-0">
                   Share on Warpcast
                 </a>
               </div>
