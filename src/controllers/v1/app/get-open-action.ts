@@ -15,7 +15,7 @@ export default async (req: Request, res: Response, next: NextFunction): Promise<
       icon: 'goal',
       description: 'Sell any data for USDC',
       // aboutUrl: 'https://warpcast.com/dappykit/0x74ecfb66',
-      imageUrl: 'https://open.web4.build/logo100.png',
+      imageUrl: 'https://open.web4.build/100.png',
       action: { type: 'post' },
     })
   } catch (e) {
