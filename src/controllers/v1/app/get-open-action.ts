@@ -12,7 +12,7 @@ export default async (req: Request, res: Response, next: NextFunction): Promise<
     res.json({
       type: 'composer',
       name: 'Data for Sale',
-      icon: 'goal',
+      icon: 'unlock',
       description: 'Sell any data for USDC',
       // aboutUrl: 'https://warpcast.com/dappykit/0x74ecfb66',
       imageUrl: 'https://open.web4.build/100.png',
