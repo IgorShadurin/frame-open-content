@@ -13,7 +13,7 @@ export default async (req: Request, res: Response, next: NextFunction): Promise<
       type: 'composer',
       name: 'Data for Sale',
       icon: 'unlock',
-      description: 'Sell any data for USDC',
+      description: 'Sell data for USDC',
       // aboutUrl: 'https://warpcast.com/dappykit/0x74ecfb66',
       imageUrl: 'https://open.web4.build/100.png',
       action: { type: 'post' },
