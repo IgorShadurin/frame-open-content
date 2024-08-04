@@ -1,6 +1,8 @@
 import React from 'react'
 import './App.css'
 import { Footer } from './Footer'
+import { DemoDiagram } from './DemoDiagram'
+import { Link } from 'react-router-dom'
 
 function App() {
   return (
@@ -85,20 +87,11 @@ function App() {
         <div className="position-relative overflow-hidden p-3 p-md-5 m-md-3 text-center bg-body-tertiary">
           <div className="col-md-6 p-lg-5 mx-auto my-5">
             <h1 className="display-3 fw-bold">AI-Powered Mini Apps</h1>
-            <h3 className="fw-normal text-muted mb-3">Mini Apps in Figma with AI. Create, publish, use.</h3>
+            <h3 className="fw-normal text-muted mb-3">Mini Apps created with AI. Create, publish, use.</h3>
             <div className="d-flex gap-3 justify-content-center lead fw-normal">
-              {/*<a className="icon-link" href="#">*/}
-              {/*  Learn more*/}
-              {/*  /!*<svg className="bi">*!/*/}
-              {/*  /!*  <use xlink:href="#chevron-right" />*!/*/}
-              {/*  /!*</svg>*!/*/}
-              {/*</a>*/}
-              <a className="btn btn-outline-success btn-lg" href="/">
-                Connect Figma to Start
-                {/*<svg className="bi">*/}
-                {/*  <use xlink:href="#chevron-right" />*/}
-                {/*</svg>*/}
-              </a>
+              <Link to="/demo" className="btn btn-outline-success btn-lg">
+                Demo
+              </Link>
             </div>
           </div>
           <div className="product-device shadow-sm d-none d-md-block"></div>

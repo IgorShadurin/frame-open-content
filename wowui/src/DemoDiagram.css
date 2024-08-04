@@ -1,0 +1,45 @@
+.bi.bi-diagram .bi-link-canvas-layer .bi-diagram-link .bi-link-path {
+    stroke: #88cdff;
+    stroke-dasharray: 10, 2;
+    animation: BiDashSegmentAnimation 1s linear infinite;
+}
+
+.bi.bi-diagram .bi-link-canvas-layer .bi-diagram-link.readonly-link .bi-link-path {
+    cursor: auto !important;
+    stroke: #88cdff;
+    stroke-dasharray: 10, 2;
+    animation: BiDashSegmentAnimation 1s linear infinite;
+}
+
+.img-not-draggable {
+    -webkit-user-drag: none;  /* Disable drag for WebKit-based browsers */
+    -khtml-user-drag: none;   /* Disable drag for Konqueror browser */
+    -moz-user-drag: none;     /* Disable drag for Mozilla browsers */
+    -o-user-drag: none;       /* Disable drag for Opera browser */
+    user-drag: none;          /* Standard syntax */
+    user-select: none;        /* Disable text selection on image */
+}
+
+/** Frames **/
+
+.frame-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    /*height: 100vh;*/
+    background-color: #ffffff;
+    border: 10px solid #66b2ff;
+}
+
+.frame-title {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #6c5ce7;
+}
+
+.frame-subtitle {
+    font-size: 0.5rem;
+    text-align: center;
+    color: #000000;
+}
