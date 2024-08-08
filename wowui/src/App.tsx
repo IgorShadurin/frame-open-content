@@ -1,7 +1,6 @@
 import React from 'react'
 import './App.css'
 import { Footer } from './Footer'
-import { DemoDiagram } from './DemoDiagram'
 import { Link } from 'react-router-dom'
 
 function App() {

@@ -100,15 +100,15 @@ app.frame('/result', async c => {
   const pointsText = `${points.toString()} of ${quiz.questions.length}`
   const isWin = points === quiz.questions.length
   const resultText = isWin ? "That's right! Well done!" : 'You can do better!'
-  const userDelegatedAddress = await kvGetDelegatedAddress(userMainAddress)
+  // const userDelegatedAddress = await kvGetDelegatedAddress(userMainAddress)
   const intents = [<Button action="/">🔁 Again</Button>]
 
   if (!isWin) {
     // if user authorized navigate to answers, if not direct to authorize
-    intents.push(<Button action={userDelegatedAddress ? '/answers' : '/authorize'}>🙋 Answers</Button>)
+    intents.push(<Button action={'/answers'}>🙋 Answers</Button>)
   }
 
-  intents.push(<Button.Link href="https://hack.dappykit.org/?source=quiz-template">🔴 Win Tokens</Button.Link>)
+  // intents.push(<Button.Link href="https://hack.dappykit.org/?source=quiz-template">🔴 Win Tokens</Button.Link>)
 
   return c.res({
     title: appTitle,
@@ -126,94 +126,6 @@ app.frame('/result', async c => {
           </Heading>
           <Text align="center" size="24">
             Correct answers: {pointsText}
-          </Text>
-        </VStack>
-      </Box>
-    ),
-    intents,
-  })
-})
-
-/**
- * Checks that user already authorized the app and shows him the button to show the answers.
- *
- * Cases when executed:
- * 1. User clicks to show answers the first time. Should create Auth Request.
- * 2. User already sends Auth Request and is waiting for the answer.
- */
-app.frame('/authorize', async c => {
-  const { appTitle, userMainAddress, appAuthUrl, appPk, dappyKit, messageBytes, appAddress } = await configureApp(
-    app,
-    c,
-  )
-  const userDelegatedAddress = await kvGetDelegatedAddress(userMainAddress)
-  const isCheckStatus = c.buttonValue === 'check-status'
-  let intents = []
-  let text = ''
-  let errorText = ''
-  let response
-
-  if (userDelegatedAddress) {
-    text = '✅ The application is authorized! You can view the answers.'
-    intents = [<Button action={'/answers'}>🙋 Answers</Button>]
-    try {
-      await dappySaveData(dappyKit, appAddress, userMainAddress, 'I was here!')
-    } catch (e) {
-      /* ignore */
-    }
-  } else {
-    if (isCheckStatus) {
-      text = `⏳ Waiting...`
-      intents = [
-        <Button value="check-status" action="/authorize">
-          🔁 Check Status
-        </Button>,
-        <Button.Reset>🏠 Home</Button.Reset>,
-      ]
-    } else {
-      try {
-        const appSigner = accountToSigner(privateKeyToAccount(appPk))
-        const userDelegatedMnemonic = generateMnemonic(english)
-        const userDelegatedWallet = mnemonicToAccount(userDelegatedMnemonic)
-        response = await dappyKit.farcasterClient.createAuthRequest(
-          messageBytes,
-          userDelegatedWallet.address,
-          appSigner,
-        )
-
-        if (response.status !== 'ok') {
-          throw new Error(`Invalid auth response status. ${JSON.stringify(response)}`)
-        }
-
-        await kvPutMnemonic(userDelegatedWallet.address, userDelegatedMnemonic)
-      } catch (e) {
-        const error = (e as Error).message
-        console.log('Auth request error', error) // eslint-disable-line no-console
-        errorText = `Error: ${error}`
-      }
-
-      text = `⚠️To view the answers, click "Authorize" and enter the number ${response?.answer}.`
-      intents = [
-        <Button.Link href={appAuthUrl}>🐙 Authorize</Button.Link>,
-        <Button value="check-status" action="/authorize">
-          🔁 Check Status
-        </Button>,
-      ]
-    }
-  }
-
-  return c.res({
-    title: appTitle,
-    image: (
-      <Box grow alignVertical="center" backgroundColor="white" padding="32" border={BORDER_SIMPLE}>
-        <VStack gap="4">
-          <Heading color="h1Text" align="center" size="48">
-            {errorText && 'Error'}
-            {!errorText && text}
-          </Heading>
-
-          <Text align="center" size="18">
-            {errorText && `Error: ${errorText}`}
           </Text>
         </VStack>
       </Box>
