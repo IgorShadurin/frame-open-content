@@ -14,6 +14,7 @@ import { ICreateItemRequest } from '../../src/controllers/v1/app/interface/ICrea
 import { IInvoiceResponse } from '../../src/controllers/v1/app/interface/IInvoiceResponse'
 import { v4 as uuidv4 } from 'uuid'
 import { setSessionInfo } from '../../src/utils/clicks'
+import { getQuizCount } from '../../src/db/quiz'
 
 const testDb = knex(configurations.development)
 
@@ -411,6 +412,103 @@ describe('App', () => {
       status: 'ok',
       itemId: 1,
       shareUrl: 'https://frame-open.web4.build/open/11.1/1/1',
+    })
+  })
+
+  it('should create a quiz', async () => {
+    const quizData = {
+      quiz: JSON.stringify({ hello: 'world' }),
+      donate_amount: '1',
+      eth_address: '5D48f19bf65CF6ae143C9B4a71232d2f0D2FAE57',
+    }
+    expect(await getQuizCount()).toEqual(0)
+    expect((await supertestApp.post(`/v1/app/create-quiz`).send(quizData)).body).toEqual({
+      status: 'ok',
+      id: 1,
+    })
+    expect(await getQuizCount()).toEqual(1)
+  })
+
+  it('should not create a quiz because incorrect json', async () => {
+    const quizData = {
+      quiz: 'hello',
+      donate_amount: '1',
+      eth_address: '5D48f19bf65CF6ae143C9B4a71232d2f0D2FAE57',
+    }
+    expect((await supertestApp.post(`/v1/app/create-quiz`).send(quizData)).body).toEqual({
+      status: 'error',
+      message: 'Invalid quiz json: Unexpected token \'h\', "hello" is not valid JSON',
+    })
+    expect(await getQuizCount()).toEqual(0)
+  })
+
+  it('should not create a quiz because empty amount', async () => {
+    const quizData = {
+      quiz: JSON.stringify({ hello: 'world' }),
+      donate_amount: '',
+      eth_address: '5D48f19bf65CF6ae143C9B4a71232d2f0D2FAE57',
+    }
+    expect((await supertestApp.post(`/v1/app/create-quiz`).send(quizData)).body).toEqual({
+      status: 'error',
+      message: 'Invalid donate amount',
+    })
+    expect(await getQuizCount()).toEqual(0)
+  })
+
+  it('should not create a quiz because negative amount', async () => {
+    const quizData = {
+      quiz: JSON.stringify({ hello: 'world' }),
+      donate_amount: '-1',
+      eth_address: '5D48f19bf65CF6ae143C9B4a71232d2f0D2FAE57',
+    }
+    expect((await supertestApp.post(`/v1/app/create-quiz`).send(quizData)).body).toEqual({
+      status: 'error',
+      message: 'Invalid donate amount',
+    })
+    expect(await getQuizCount()).toEqual(0)
+  })
+
+  it('should not create a quiz because zero amount', async () => {
+    const quizData = {
+      quiz: JSON.stringify({ hello: 'world' }),
+      donate_amount: '0',
+      eth_address: '5D48f19bf65CF6ae143C9B4a71232d2f0D2FAE57',
+    }
+    expect((await supertestApp.post(`/v1/app/create-quiz`).send(quizData)).body).toEqual({
+      status: 'error',
+      message: 'Invalid donate amount',
+    })
+    expect(await getQuizCount()).toEqual(0)
+  })
+
+  it('should convert eth address and create a quiz', async () => {
+    const quizData = {
+      quiz: JSON.stringify({ hello: 'world' }),
+      donate_amount: '1',
+      eth_address: '0x5D48f19bf65CF6ae143C9B4a71232d2f0D2FAE57',
+    }
+    expect(await getQuizCount()).toEqual(0)
+    expect((await supertestApp.post(`/v1/app/create-quiz`).send(quizData)).body).toEqual({
+      status: 'ok',
+      id: 1,
+    })
+    expect(await getQuizCount()).toEqual(1)
+  })
+
+  it('should create and get the quiz', async () => {
+    const quizInfo = { hello: 'world' }
+    const quizData = {
+      quiz: JSON.stringify(quizInfo),
+      donate_amount: '1',
+      eth_address: '5D48f19bf65CF6ae143C9B4a71232d2f0D2FAE57',
+    }
+    expect((await supertestApp.post(`/v1/app/create-quiz`).send(quizData)).body).toEqual({
+      status: 'ok',
+      id: 1,
+    })
+
+    expect((await supertestApp.get(`/v1/app/get-quiz?id=1`).send()).body).toEqual({
+      quiz: quizInfo,
     })
   })
 })

@@ -5,6 +5,8 @@ import createItemAction from './create-item-action'
 import openAction from './open-action'
 import getOpenAction from './get-open-action'
 import aiQuizAction from './ai-quiz-action'
+import createQuizAction from './create-quiz-action'
+import getQuizAction from './get-quiz-action'
 import rateLimit from 'express-rate-limit'
 
 const maxRequests = 10
@@ -24,5 +26,7 @@ router.post('/open', openAction)
 router.get('/open', getOpenAction)
 
 router.post('/ai-quiz', aiQuizLimiter, aiQuizAction)
+router.post('/create-quiz', createQuizAction)
+router.get('/get-quiz', getQuizAction)
 
 export default router
