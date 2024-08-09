@@ -1,3 +1,7 @@
 .demo-chat-container {
     /*padding: 11px;*/
 }
+
+.url-text-data {
+    text-decoration: underline dotted !important;
+}

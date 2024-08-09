@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import './DemoChat.css'
 import { Button, Form, Modal } from 'react-bootstrap'
+import { getQuizData, QuizData } from './service/api'
 
-export function DemoChat() {
+export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promise<void> }) {
   const [topic, setTopic] = useState('dogs')
   const [donate, setDonate] = useState('1')
   const [wallet, setWallet] = useState('0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045')
@@ -15,8 +16,13 @@ export function DemoChat() {
 
   const handleSubmit = async () => {
     setLoading(true)
-    // Simulate async operation for creating quiz
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    try {
+      const quizData = await getQuizData(topic)
+      await onQuizData(quizData)
+    } catch (e) {
+      console.log('Quiz data submit error', e)
+    }
+
     setLoading(false)
     setDeployed(true)
   }
@@ -35,7 +41,7 @@ export function DemoChat() {
     setShowModal(true)
   }
 
-  const handleSave = () => {
+  const handleSave = (e: any) => {
     if (currentField === 'topic') setTopic(tempValue)
     if (currentField === 'donate') setDonate(tempValue)
     if (currentField === 'wallet') setWallet(tempValue)
@@ -48,11 +54,11 @@ export function DemoChat() {
         <h3>Create Mini-app with AI</h3>
       </div>
 
-      <div className="container mt-5 p-3 border rounded bg-light">
+      <div className="joy-message container mt-5 p-3 border rounded bg-light">
         <div>
           <span>Hey! Create a quiz about </span>
           <span
-            className="text-decoration-underline text-primary"
+            className="text-primary url-text-data"
             onClick={() => handleShowModal('topic', topic)}
             style={{ cursor: 'pointer', textDecoration: 'underline dotted' }}
           >
@@ -63,7 +69,7 @@ export function DemoChat() {
           <br />
           <span>At the end of the quiz, ask to donate </span>
           <span
-            className="text-decoration-underline text-primary"
+            className="text-primary url-text-data"
             onClick={() => handleShowModal('donate', donate)}
             style={{ cursor: 'pointer', textDecoration: 'underline dotted' }}
           >
@@ -71,7 +77,7 @@ export function DemoChat() {
           </span>
           <span> USDC to </span>
           <span
-            className="text-decoration-underline text-primary"
+            className="text-primary url-text-data"
             onClick={() => handleShowModal('wallet', wallet)}
             style={{ cursor: 'pointer', textDecoration: 'underline dotted' }}
           >
@@ -81,17 +87,17 @@ export function DemoChat() {
         </div>
       </div>
 
-      <div className={`mt-3`}>
+      <div className="mt-3">
         {!deployed ? (
-          <button type="submit" className="btn btn-outline-primary" onClick={handleSubmit} disabled={loading}>
+          <button type="submit" className="joy-submit btn btn-outline-primary" onClick={handleSubmit} disabled={loading}>
             {loading ? 'Submitting...' : 'Submit'}
           </button>
         ) : (
           <>
             <div className="alert alert-info">
-             Do you like the app? Deploy it to use.
+              Do you like the app? Deploy it to use.
             </div>
-            <button type="button" className="btn btn-outline-primary" onClick={handleDeploy} disabled={loading}>
+            <button type="button" className="joy-deploy btn btn-outline-primary" onClick={handleDeploy} disabled={loading}>
               {loading ? 'Deploying...' : 'Deploy'}
             </button>
             {deployUrl && (
@@ -108,16 +114,14 @@ export function DemoChat() {
           <Modal.Title>Edit {currentField}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form>
-            <Form.Group controlId="formBasicEmail">
-              <Form.Label>{`Enter new ${currentField}`}</Form.Label>
-              <Form.Control
-                type="text"
-                value={tempValue}
-                onChange={e => setTempValue(e.target.value)}
-              />
-            </Form.Group>
-          </Form>
+          <Form.Group controlId="formBasicEmail">
+            <Form.Label>{`Enter new ${currentField}`}</Form.Label>
+            <Form.Control
+              type="text"
+              value={tempValue}
+              onChange={e => setTempValue(e.target.value)}
+            />
+          </Form.Group>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowModal(false)}>
