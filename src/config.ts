@@ -23,6 +23,11 @@ export interface IConfigData {
    * Clickcaster export URL
    */
   clickcasterExportUrl: string
+
+  /**
+   * OpenAI key
+   */
+  openAiApiKey: string
 }
 
 /**
@@ -33,6 +38,7 @@ let configData: IConfigData = {
   publicUrl: '',
   authorizedFrameUrl: '',
   clickcasterExportUrl: '',
+  openAiApiKey: '',
 }
 
 /**
@@ -55,10 +61,15 @@ export function loadConfig(): void {
     throw new Error('CLICKCASTER_EXPORT_URL env variable not set')
   }
 
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY env variable not set')
+  }
+
   configData.neynarApiKey = process.env.NEYNAR_API_KEY
   configData.publicUrl = process.env.PUBLIC_URL
   configData.authorizedFrameUrl = process.env.AUTHORIZED_FRAME_URL
   configData.clickcasterExportUrl = process.env.CLICKCASTER_EXPORT_URL
+  configData.openAiApiKey = process.env.OPENAI_API_KEY
 }
 
 /**
