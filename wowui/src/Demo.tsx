@@ -34,7 +34,7 @@ export function Demo() {
           {quizData && <DemoDiagram quizData={quizData} />}
           {!quizData && <div className="text-center" style={{backgroundColor: '#f8fafc', height: '100vh', border: '1px solid lightgrey', borderRadius: '3px'}}>
             <p className="mt-5">
-              ✉️ Send a message in the chat to start creating the application.
+              ✉️ Send a message in the <strong>panel on the right</strong> to start creating your app.
             </p>
           </div>}
         </div>

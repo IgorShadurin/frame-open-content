@@ -30,7 +30,7 @@ const CustomNode = (props: any, data: { title: string; subtitle: string; borderC
   return (
     <div style={{ background: '#f1f1f1', borderRadius: '4px' }}>
       <div style={{ padding: '0px', color: 'white' }}>
-        <div className="frame-container" style={{ width, height, borderColor }}>
+        <div className="frame-container text-center p-1" style={{ width, height, borderColor }}>
           <h1 className="frame-title">{title}</h1>
           <p className="frame-subtitle">{subtitle}</p>
         </div>
@@ -73,11 +73,8 @@ function getQuizSchema(quizData: QuizData | undefined) {
   nodes.push(...quizData.questions.map((question, index) => {
     const step = (index + 1)
     const lineInfo = calculateLineAndIndex(step)
-    console.log('lineInfo', lineInfo, 'index', index)
     const x = width * lineInfo.lineIndex + marginRight * (lineInfo.lineIndex + 1)
     const y = height * lineInfo.line + (lineInfo.line === 0 ? marginTopLine0 : marginTop * lineInfo.line)
-    console.log(`height (${height}) * lineInfo.line (${lineInfo.line}) + (lineInfo.line ${lineInfo.line} === 0 ? marginTopLine0 (${marginTopLine0}) : marginTop (${marginTop})) * (lineInfo.line (${lineInfo.line}) + 1) = ${y}`)
-    console.log('x', x, 'y', y)
     return {
       id: `node-${index + 2}`,
       render: (props: any) => CustomNode(props, {
@@ -119,8 +116,6 @@ function getQuizSchema(quizData: QuizData | undefined) {
 //   }),
 //   coordinates: [xSuccess, ySuccess],
 // })
-
-  console.log('nodes', nodes)
 
   const links = []
   for (let i = 1; i < nodes.length - 1; i++) {

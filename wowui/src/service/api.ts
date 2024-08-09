@@ -12,7 +12,27 @@ export interface Question {
   correctAnswerIndex: number
 }
 
-export function getQuizData(topic: string): Promise<QuizData> {
+export async function getQuizData(topic: string): Promise<QuizData> {
+  const response = await fetch('https://api-open.web4.build/v1/app/ai-quiz', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ topic }),
+  })
+  if (!response.ok) {
+    throw new Error('Failed to get quiz data')
+  }
+
+  const json = await response.json()
+  if (!json.quiz) {
+    throw new Error('Invalid quiz data')
+  }
+
+  return json.quiz
+}
+
+export function getQuizDataFake(topic: string): Promise<QuizData> {
   return new Promise(resolve =>
     setTimeout(
       () =>
@@ -23,7 +43,7 @@ export function getQuizData(topic: string): Promise<QuizData> {
           finishBorderColor: '#7fe75c',
           questions: [
             {
-              question: 'What is RAM?',
+              question: 'What is RAM? Hello world ahahah',
               answers: ['Memory', 'CPU', 'Cache', 'Disk'],
               correctAnswerIndex: 0,
             },
@@ -54,7 +74,7 @@ export function getQuizData(topic: string): Promise<QuizData> {
             },
           ],
         }),
-      500
-    )
+      500,
+    ),
   )
 }

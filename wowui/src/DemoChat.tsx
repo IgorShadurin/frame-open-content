@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import './DemoChat.css'
 import { Button, Form, Modal } from 'react-bootstrap'
-import { getQuizData, QuizData } from './service/api'
+import { getQuizData, getQuizDataFake, QuizData } from './service/api'
 
 export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promise<void> }) {
   const [topic, setTopic] = useState('dogs')
@@ -17,10 +17,13 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      const quizData = await getQuizData(topic)
+      // const quizData = await getQuizData(topic)
+      const quizData = await getQuizDataFake(topic)
+      console.log('quizData', quizData)
       await onQuizData(quizData)
     } catch (e) {
       console.log('Quiz data submit error', e)
+      alert(`Quiz creation failed: ${(e as Error).message}`)
     }
 
     setLoading(false)
@@ -88,17 +91,18 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
       </div>
 
       <div className="mt-3">
-        {!deployed ? (
-          <button type="submit" className="joy-submit btn btn-outline-primary" onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Submitting...' : 'Submit'}
-          </button>
-        ) : (
+        {deployed ? (
           <>
             <div className="alert alert-info">
-              Do you like the app? Deploy it to use.
+              Like the generated app? Deploy it!
             </div>
-            <button type="button" className="joy-deploy btn btn-outline-primary" onClick={handleDeploy} disabled={loading}>
+            <button type="button" className="joy-deploy btn btn-outline-primary mx-1" onClick={handleDeploy}
+                    disabled={loading}>
               {loading ? 'Deploying...' : 'Deploy'}
+            </button>
+            <button type="button" className="joy-deploy btn btn-outline-secondary" onClick={() => setDeployed(false)}
+                    disabled={loading}>
+              Cancel
             </button>
             {deployUrl && (
               <div className="mt-3">
@@ -106,6 +110,11 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
               </div>
             )}
           </>
+        ) : (
+          <button type="submit" className="joy-submit btn btn-outline-primary" onClick={handleSubmit}
+                  disabled={loading}>
+            {loading ? 'Submitting...' : 'Submit'}
+          </button>
         )}
       </div>
 
