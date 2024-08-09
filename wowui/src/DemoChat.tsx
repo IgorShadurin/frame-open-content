@@ -98,7 +98,7 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
             </div>
             <button type="button" className="joy-deploy btn btn-outline-primary mx-1" onClick={handleDeploy}
                     disabled={loading}>
-              {loading ? 'Deploying...' : 'Deploy'}
+              🚀 {loading ? 'Deploying...' : 'Deploy'}
             </button>
             <button type="button" className="joy-deploy btn btn-outline-secondary" onClick={() => setDeployed(false)}
                     disabled={loading}>
@@ -113,7 +113,7 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
         ) : (
           <button type="submit" className="joy-submit btn btn-outline-primary" onClick={handleSubmit}
                   disabled={loading}>
-            {loading ? 'Submitting...' : 'Submit'}
+            {loading ? '⏳ Submitting...' : 'Submit'}
           </button>
         )}
       </div>
