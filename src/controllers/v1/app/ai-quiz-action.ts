@@ -3,6 +3,7 @@ import { QuizData } from './interface/IAIQuizResponse'
 import OpenAI from 'openai'
 import z from 'zod'
 import { zodFunction } from 'openai/helpers/zod'
+import { getConfigData } from '../../../config'
 
 /**
  *
@@ -18,6 +19,7 @@ export default async (
   next: NextFunction,
 ): Promise<void> => {
   try {
+    const { openAiApiKey } = getConfigData()
     const { topic } = req.body
     const QuestionSchema = z.object({
       question: z.string(),
@@ -34,7 +36,7 @@ export default async (
     })
 
     const client = new OpenAI({
-      apiKey: '',
+      apiKey: openAiApiKey,
     })
 
     const completion = await client.beta.chat.completions.parse({
