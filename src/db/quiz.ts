@@ -5,6 +5,7 @@ export const QUIZ_TABLE_NAME = 'quiz'
 export interface IQuiz {
   id?: number
   data: string
+  user_request: string
   donate_amount: string
   eth_address: string
   created_at?: string

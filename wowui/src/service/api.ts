@@ -12,6 +12,30 @@ export interface Question {
   correctAnswerIndex: number
 }
 
+export async function createQuiz(quiz: string, ethAddress: string, amount: string): Promise<number> {
+  const response = await fetch('https://api-open.web4.build/v1/app/create-quiz', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      quiz,
+      donate_amount: amount,
+      eth_address: ethAddress,
+    }),
+  })
+  if (!response.ok) {
+    throw new Error('Failed to create quiz')
+  }
+
+  const json = await response.json()
+  if (!json.id) {
+    throw new Error('Invalid quiz ID')
+  }
+
+  return json.id
+}
+
 export async function getQuizData(topic: string): Promise<QuizData> {
   const response = await fetch('https://api-open.web4.build/v1/app/ai-quiz', {
     method: 'POST',

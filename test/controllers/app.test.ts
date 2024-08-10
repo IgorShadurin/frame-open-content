@@ -14,7 +14,9 @@ import { ICreateItemRequest } from '../../src/controllers/v1/app/interface/ICrea
 import { IInvoiceResponse } from '../../src/controllers/v1/app/interface/IInvoiceResponse'
 import { v4 as uuidv4 } from 'uuid'
 import { setSessionInfo } from '../../src/utils/clicks'
-import { getQuizCount } from '../../src/db/quiz'
+import { getQuizById, getQuizCount } from '../../src/db/quiz'
+import { getQuizResponse } from '../../src/utils/ai'
+import { getAIQuizCount } from '../../src/db/aiQuiz'
 
 const testDb = knex(configurations.development)
 
@@ -36,7 +38,17 @@ jest.mock('../../src/utils/farcaster', () => {
   }
 })
 
+jest.mock('../../src/utils/ai', () => {
+  const originalModule = jest.requireActual('../../src/utils/ai')
+
+  return {
+    ...originalModule,
+    getQuizResponse: jest.fn().mockResolvedValue({}),
+  }
+})
+
 const getInteractorInfoMock = getInteractorInfo as jest.Mock
+const getQuizResponseMock = getQuizResponse as jest.Mock
 
 function mockInteractorFunc(func: (neynarApiKey: string, clickData: string) => InteractorInfo) {
   getInteractorInfoMock.mockImplementation(func)
@@ -417,6 +429,7 @@ describe('App', () => {
 
   it('should create a quiz', async () => {
     const quizData = {
+      request: 'my request',
       quiz: JSON.stringify({ hello: 'world' }),
       donate_amount: '1',
       eth_address: '5D48f19bf65CF6ae143C9B4a71232d2f0D2FAE57',
@@ -431,6 +444,7 @@ describe('App', () => {
 
   it('should not create a quiz because incorrect json', async () => {
     const quizData = {
+      request: 'my request',
       quiz: 'hello',
       donate_amount: '1',
       eth_address: '5D48f19bf65CF6ae143C9B4a71232d2f0D2FAE57',
@@ -444,6 +458,7 @@ describe('App', () => {
 
   it('should not create a quiz because empty amount', async () => {
     const quizData = {
+      request: 'my request',
       quiz: JSON.stringify({ hello: 'world' }),
       donate_amount: '',
       eth_address: '5D48f19bf65CF6ae143C9B4a71232d2f0D2FAE57',
@@ -457,6 +472,7 @@ describe('App', () => {
 
   it('should not create a quiz because negative amount', async () => {
     const quizData = {
+      request: 'my request',
       quiz: JSON.stringify({ hello: 'world' }),
       donate_amount: '-1',
       eth_address: '5D48f19bf65CF6ae143C9B4a71232d2f0D2FAE57',
@@ -470,6 +486,7 @@ describe('App', () => {
 
   it('should not create a quiz because zero amount', async () => {
     const quizData = {
+      request: 'my request',
       quiz: JSON.stringify({ hello: 'world' }),
       donate_amount: '0',
       eth_address: '5D48f19bf65CF6ae143C9B4a71232d2f0D2FAE57',
@@ -483,6 +500,7 @@ describe('App', () => {
 
   it('should convert eth address and create a quiz', async () => {
     const quizData = {
+      request: 'my request',
       quiz: JSON.stringify({ hello: 'world' }),
       donate_amount: '1',
       eth_address: '0x5D48f19bf65CF6ae143C9B4a71232d2f0D2FAE57',
@@ -497,7 +515,9 @@ describe('App', () => {
 
   it('should create and get the quiz', async () => {
     const quizInfo = { hello: 'world' }
+    const userRequest = 'my request'
     const quizData = {
+      request: userRequest,
       quiz: JSON.stringify(quizInfo),
       donate_amount: '1',
       eth_address: '5D48f19bf65CF6ae143C9B4a71232d2f0D2FAE57',
@@ -510,5 +530,21 @@ describe('App', () => {
     expect((await supertestApp.get(`/v1/app/get-quiz?id=1`).send()).body).toEqual({
       quiz: quizInfo,
     })
+
+    const dbQuiz = await getQuizById(1)
+    expect(dbQuiz?.user_request).toEqual(userRequest)
+  })
+
+  it('should return ai-generated quiz and save data to db', async () => {
+    const quizData = { some: 'data' }
+    getQuizResponseMock.mockImplementation(() => ({
+      quizData,
+      fullData: { ha: 'lo' },
+    }))
+    expect(await getAIQuizCount()).toEqual(0)
+    expect((await supertestApp.post(`/v1/app/ai-quiz`).send(quizData)).body).toEqual({
+      quiz: quizData,
+    })
+    expect(await getAIQuizCount()).toEqual(1)
   })
 })

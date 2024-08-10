@@ -16,8 +16,12 @@ export default async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const { quiz, donate_amount, eth_address } = req.body
+    const { quiz, donate_amount, eth_address, request } = req.body
     const ethAddressPrepared = eth_address.replace('0x', '')
+
+    if (!request) {
+      throw new Error('Empty user request')
+    }
 
     if (!ethAddressPrepared || ethAddressPrepared.length !== 40) {
       throw new Error('Invalid eth address')
@@ -34,6 +38,7 @@ export default async (
     safeJsonParse(quiz, 'Invalid quiz json')
 
     const id = await insertQuiz({
+      user_request: request,
       data: quiz,
       donate_amount,
       eth_address: ethAddressPrepared,
