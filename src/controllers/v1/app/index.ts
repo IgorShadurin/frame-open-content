@@ -25,7 +25,8 @@ router.post('/create-item', createItemAction)
 router.post('/open', openAction)
 router.get('/open', getOpenAction)
 
-router.post('/ai-quiz', aiQuizLimiter, aiQuizAction)
+// router.post('/ai-quiz', aiQuizLimiter, aiQuizAction)
+router.post('/ai-quiz', aiQuizAction)
 router.post('/create-quiz', createQuizAction)
 router.get('/get-quiz', getQuizAction)
 
