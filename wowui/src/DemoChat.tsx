@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import './DemoChat.css'
 import { Button, Form, Modal } from 'react-bootstrap'
-import { getQuizData, getQuizDataFake, QuizData } from './service/api'
+import { getQuizData, getQuizDataFake, QuizData, createQuiz } from './service/api'
 
 export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promise<void> }) {
   const [topic, setTopic] = useState('dogs')
@@ -13,6 +13,7 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
   const [showModal, setShowModal] = useState(false)
   const [currentField, setCurrentField] = useState('')
   const [tempValue, setTempValue] = useState('')
+  const [quizData, setQuizData] = useState('')
 
   const handleSubmit = async () => {
     setLoading(true)
@@ -21,6 +22,7 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
       const quizData = await getQuizDataFake(topic)
       console.log('quizData', quizData)
       await onQuizData(quizData)
+      setQuizData(JSON.stringify(quizData))
     } catch (e) {
       console.log('Quiz data submit error', e)
       alert(`Quiz creation failed: ${(e as Error).message}`)
@@ -32,10 +34,16 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
 
   const handleDeploy = async () => {
     setLoading(true)
-    // Simulate async operation for deploying the quiz
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setLoading(false)
-    setDeployUrl('https://example.com/quiz')
+    let quizId = 0
+    try {
+      quizId = await createQuiz(topic, quizData, wallet, donate)
+      // todo set correct url
+      setDeployUrl(`https://example.com/quiz?id=${quizId}`)
+    } catch (e) {
+      alert(`Failed to deploy quiz: ${(e as Error).message}`)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleShowModal = (field: string, value: string) => {
@@ -46,7 +54,7 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
 
   const handleSave = (e: any) => {
     if (currentField === 'topic') setTopic(tempValue)
-    if (currentField === 'donate') setDonate(tempValue)
+    if (currentField === 'donate') setDonate(Number.isNaN(Number(tempValue)) ? '1' : Number(tempValue).toString())
     if (currentField === 'wallet') setWallet(tempValue)
     setShowModal(false)
   }
@@ -57,7 +65,8 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
         <h3>Create Mini-app with AI</h3>
       </div>
 
-      <div className="joy-message container mt-5 p-3 border rounded bg-light">
+      <div className="joy-message container mt-5 p-3 border rounded bg-light"
+           style={deployed ? { pointerEvents: 'none', cursor: 'not-allowed' } : {}}>
         <div>
           <span>Hey! Create a quiz about </span>
           <span
@@ -113,7 +122,7 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
         ) : (
           <button type="submit" className="joy-submit btn btn-outline-primary" onClick={handleSubmit}
                   disabled={loading}>
-            {loading ? '⏳ Submitting...' : 'Submit'}
+            ✏️ {loading ? 'Submitting...' : 'Submit'}
           </button>
         )}
       </div>

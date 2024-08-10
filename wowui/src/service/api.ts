@@ -12,13 +12,14 @@ export interface Question {
   correctAnswerIndex: number
 }
 
-export async function createQuiz(quiz: string, ethAddress: string, amount: string): Promise<number> {
+export async function createQuiz(topic: string, quiz: string, ethAddress: string, amount: string): Promise<number> {
   const response = await fetch('https://api-open.web4.build/v1/app/create-quiz', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
+      request: topic,
       quiz,
       donate_amount: amount,
       eth_address: ethAddress,
