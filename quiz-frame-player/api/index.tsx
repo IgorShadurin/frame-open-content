@@ -200,45 +200,6 @@ app.transaction('/buy/:price/:to', c => {
   })
 })
 
-// app.frame('/answers', async c => {
-//   const { appTitle } = await configureApp(app, c)
-//   const questionIndex = c.buttonValue ? Number(c.buttonValue) : 0
-//   const quiz = new Quiz(quizData, questionIndex)
-//   const isLastQuestion = questionIndex >= quiz.questions.length - 1
-//   const intents = []
-//
-//   if (isLastQuestion) {
-//     intents.push(<Button action="/">🏠 Home</Button>)
-//   } else {
-//     intents.push(
-//       <Button value={(questionIndex + 1).toString()} action="/answers">
-//         👉 Next
-//       </Button>,
-//     )
-//   }
-//
-//   return c.res({
-//     title: appTitle,
-//     image: (
-//       <Box grow alignVertical="center" backgroundColor="white" padding="32" border={BORDER_SIMPLE}>
-//         <VStack gap="4">
-//           <Heading color="h1Text" align="center" size="64">
-//             {quiz.questions[questionIndex].question}
-//           </Heading>
-//
-//           <Text align="center" size="32">
-//             Answer: {quiz.questions[questionIndex].answers[quiz.questions[questionIndex].correctAnswerIndex]}
-//           </Text>
-//           <Text align="center" size="18">
-//             ID: {questionIndex + 1}/{quiz.questions.length}
-//           </Text>
-//         </VStack>
-//       </Box>
-//     ),
-//     intents,
-//   })
-// })
-
 // @ts-ignore Vercel info
 const isEdgeFunction = typeof EdgeFunction !== 'undefined'
 const isProduction = isEdgeFunction || import.meta.env?.MODE !== 'development'
