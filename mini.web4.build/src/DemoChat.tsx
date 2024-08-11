@@ -19,8 +19,8 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      // const quizData = await getQuizData(topic)
-      const quizData = await getQuizDataFake(topic)
+      const quizData = await getQuizData(topic)
+      // const quizData = await getQuizDataFake(topic)
       console.log('quizData', quizData)
       await onQuizData(quizData)
       setQuizData(JSON.stringify(quizData))
