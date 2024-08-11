@@ -529,6 +529,8 @@ describe('App', () => {
 
     expect((await supertestApp.get(`/v1/app/get-quiz?id=1`).send()).body).toEqual({
       quiz: quizInfo,
+      donate_amount: Number(quizData.donate_amount),
+      eth_address: quizData.eth_address,
     })
 
     const dbQuiz = await getQuizById(1)

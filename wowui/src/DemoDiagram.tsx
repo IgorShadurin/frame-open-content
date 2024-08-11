@@ -95,7 +95,7 @@ function getQuizSchema(quizData: QuizData | undefined) {
     id: `node-${quizData.questions.length + 2}`,
     render: props => CustomNode(props, {
       title: 'Congratulations!',
-      subtitle: `Correct answers: {N}/${quizData.questions.length}`,
+      subtitle: `Correct answers: {N} of ${quizData.questions.length}`,
       borderColor: quizData.finishBorderColor,
       buttons: ['⚡ Donate USDC', '🔁 Try again'],
     }),

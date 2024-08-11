@@ -24,6 +24,8 @@ export default async (req: Request, res: Response<IGetQuizResponse>, next: NextF
 
     res.json({
       quiz: JSON.parse(quiz.data),
+      donate_amount: Number(quiz.donate_amount),
+      eth_address: quiz.eth_address,
     })
   } catch (e) {
     next(e)
