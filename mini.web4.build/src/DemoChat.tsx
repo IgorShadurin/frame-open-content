@@ -10,6 +10,7 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
   const [loading, setLoading] = useState(false)
   const [deployed, setDeployed] = useState(false)
   const [deployUrl, setDeployUrl] = useState('')
+  const [demoUrl, setDemoUrl] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [currentField, setCurrentField] = useState('')
   const [tempValue, setTempValue] = useState('')
@@ -38,7 +39,8 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
     try {
       quizId = await createQuiz(topic, quizData, wallet, donate)
       // todo set correct url
-      setDeployUrl(`https://example.com/quiz?id=${quizId}`)
+      setDemoUrl(`https://quiz.web4.build/api/dev/${quizId}`)
+      setDeployUrl(`https://quiz.web4.build/api/${quizId}`)
     } catch (e) {
       alert(`Failed to deploy quiz: ${(e as Error).message}`)
     } finally {
@@ -113,9 +115,17 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
                     disabled={loading}>
               Cancel
             </button>
+            {demoUrl && <hr/>}
+
             {deployUrl && (
               <div className="mt-3">
-                <a href={deployUrl} target="_blank" rel="noopener noreferrer">Open deployed app</a>
+                <p>Share on Farcaster</p>
+                <input type="text" className={"form-control"} value={deployUrl} readOnly={true}/>
+              </div>
+            )}
+            {demoUrl && (
+              <div className="mt-3">
+                <a href={demoUrl} target="_blank" rel="noopener noreferrer">Debug app</a>
               </div>
             )}
           </>
