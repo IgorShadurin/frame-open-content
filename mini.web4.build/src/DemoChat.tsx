@@ -38,9 +38,9 @@ export function DemoChat({ onQuizData }: { onQuizData: (data: QuizData) => Promi
     let quizId = 0
     try {
       quizId = await createQuiz(topic, quizData, wallet, donate)
-      // todo set correct url
-      setDemoUrl(`https://quiz.web4.build/api/dev/${quizId}`)
-      setDeployUrl(`https://quiz.web4.build/api/${quizId}`)
+      const url = `https://quiz.web4.build/api/${quizId}`
+      setDemoUrl(`https://warpcast.com/~/developers/frames?url=${encodeURIComponent(url)}`)
+      setDeployUrl(url)
     } catch (e) {
       alert(`Failed to deploy quiz: ${(e as Error).message}`)
     } finally {
