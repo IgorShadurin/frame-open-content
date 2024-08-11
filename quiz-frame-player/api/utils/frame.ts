@@ -32,10 +32,11 @@ export async function configureApp(app: Frog, c: FrameContext, browserLocationTy
     Config.optimismMainnetConfig,
     'focus drama print win destroy venue term alter cheese retreat office cannon',
   )
-  const appTitle = (env?.APP_TITLE as string) || 'DappyKit App'
+  const appTitle = (env?.APP_TITLE as string) || 'Quiz Player'
   const appOwnerFID = Number(env?.APP_OWNER_FID)
   const appPk = env?.APP_PK as `0x${string}`
-  const appAuthUrl = (env?.APP_AUTH_URL as string) || 'https://warpcast.com/dappykit/0x9bcfba07'
+  // todo change
+  const appAuthUrl = (env?.APP_AUTH_URL as string) || 'https://web4.build'
   const appShareUrl = env?.APP_SHARE_URL as string
 
   if (!appTitle || !appOwnerFID || Number.isNaN(appOwnerFID) || !appPk || !appAuthUrl || !appShareUrl) {

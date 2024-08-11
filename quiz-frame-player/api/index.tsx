@@ -1,18 +1,34 @@
-import { Button, Frog } from 'frog'
+import { Button, FrameContext, Frog } from 'frog'
 import { devtools } from 'frog/dev'
-import dappykit from '@dappykit/sdk'
 import { serveStatic } from 'frog/serve-static'
 import { configureApp } from './utils/frame.js'
-import { BORDER_FAIL, BORDER_SIMPLE, BORDER_SUCCESS, Box, Heading, Text, vars, VStack } from './utils/style.js'
+import { Box, Heading, Text, vars, VStack } from './utils/style.js'
 import { handle } from 'frog/vercel'
-import quizData from '../quiz.json' assert { type: 'json' }
 import { Quiz } from './quiz/index.js'
-import { kvGetDelegatedAddress, kvPutMnemonic } from './utils/kv.js'
-import { dappySaveData } from './utils/dappykit.js'
+import { getQuiz } from './utils/api.js'
+import { parseUnits } from 'ethers'
 
-const { ViemUtils, Utils } = dappykit
-const { generateMnemonic, privateKeyToAccount, english, mnemonicToAccount } = ViemUtils
-const { accountToSigner } = Utils.Signer
+const BORDER = '1em solid grey'
+
+function renderError(c: FrameContext, e: unknown) {
+  return c.res({
+    title: 'Quiz Error',
+    image: (
+      <Box grow alignVertical="center" backgroundColor="white" padding="32" border={BORDER}>
+        <VStack gap="4">
+          <Heading color="black" align="center" size="48">
+            Error
+          </Heading>
+
+          <Text align="center" size="18">
+            {(e as Error).message}
+          </Text>
+        </VStack>
+      </Box>
+    ),
+    intents: [<Button action="/">🏠 Home</Button>],
+  })
+}
 
 export const app = new Frog({
   assetsPath: '/',
@@ -20,40 +36,55 @@ export const app = new Frog({
   ui: { vars },
 })
 
-app.frame('/', async c => {
-  const { appTitle } = await configureApp(app, c, 'appAuthUrl')
+async function getQuizData(id: number| string) {
+  // todo cache it
+  return getQuiz(id)
+}
 
-  const intents = [<Button action="/next">⭐ Start</Button>]
+app.frame('/:id', async c => {
+  try {
+    const { id } = c.req.param()
+    if (!id) {
+      throw new Error('Invalid param quiz ID')
+    }
 
-  return c.res({
-    title: appTitle,
-    image: (
-      <Box grow alignVertical="center" backgroundColor="white" padding="32" border={BORDER_SIMPLE}>
-        <VStack gap="4">
-          <Heading color="h1Text" align="center" size="64">
-            Quiz time!
-          </Heading>
+    const quizData = await getQuizData(id)
+    console.log('quizData', quizData)
+    const { appTitle } = await configureApp(app, c, 'appAuthUrl')
+    const intents = [<Button action={`/next/${id}`}>⭐ Start</Button>]
 
-          <Text align="center" size="18">
-            {quizData.shortDescription}
-          </Text>
-        </VStack>
-      </Box>
-    ),
-    intents,
-  })
+    return c.res({
+      title: appTitle,
+      image: (
+        <Box grow alignVertical="center" backgroundColor="white" padding="32" border={`1em solid ${quizData.quiz.startBorderColor}`}>
+          <VStack gap="4">
+            <Heading color="h1Text" align="center" size="64">
+              Quiz time!
+            </Heading>
+
+            <Text align="center" size="18">
+              {quizData.quiz.shortDescription}
+            </Text>
+          </VStack>
+        </Box>
+      ),
+      intents,
+    })
+  } catch (e) {
+    return renderError(c, e)
+  }
 })
 
-app.frame('/next', async c => {
-  const { appTitle, appShareUrl } = await configureApp(app, c)
+app.frame('/next/:id', async c => {
+  const { id } = c.req.param()
+  const quizData = await getQuizData(id)
+  const { appTitle } = await configureApp(app, c)
   const buttonData = JSON.parse(c.buttonValue || '{}')
   const questionIndex = buttonData.qi ? Number(buttonData.qi) : 0
   const points = buttonData.p ? Number(buttonData.p) : 0
-  const quiz = new Quiz(quizData, questionIndex, points)
+  const quiz = new Quiz(quizData.quiz, questionIndex, points)
   const isLastQuestion = questionIndex >= quiz.questions.length - 1
-  const action = isLastQuestion ? '/result' : '/next'
-  const message = encodeURIComponent(`🚀 Check out the Quiz!`)
-  const buttonUrl = `https://warpcast.com/~/compose?text=${message}&embeds[]=${appShareUrl}`
+  const action = isLastQuestion ? `/result/${id}` : `/next/${id}`
 
   const answers = quiz.questions[questionIndex].answers.map((item, index) => ({
     text: item,
@@ -71,15 +102,14 @@ app.frame('/next', async c => {
         </Button>
       )
     }),
-    <Button.Link href={buttonUrl}>🔗 Share</Button.Link>,
   ])
 
   return c.res({
     title: appTitle,
     image: (
-      <Box grow alignVertical="center" backgroundColor="white" padding="32" border={BORDER_SIMPLE}>
+      <Box grow alignVertical="center" backgroundColor="white" padding="32" border={`1em solid ${quizData.quiz.questionBorderColor}`}>
         <VStack gap="4">
-          <Heading color="h1Text" align="center" size="64">
+          <Heading color="h1Text" align="center" size="48">
             {quiz.questions[questionIndex].question}
           </Heading>
           <Text align="center" size="18">
@@ -92,23 +122,21 @@ app.frame('/next', async c => {
   })
 })
 
-app.frame('/result', async c => {
-  const { appTitle, userMainAddress } = await configureApp(app, c)
+app.frame('/result/:id', async c => {
+  const { id } = c.req.param()
+  const { quiz, eth_address, donate_amount } = await getQuizData(id)
+  const { appTitle } = await configureApp(app, c)
   const buttonData = JSON.parse(c.buttonValue || '{}')
-  const quiz = new Quiz(quizData)
+  // const quiz = new Quiz(quiz)
   const points = buttonData.p ? Number(buttonData.p) : 0
   const pointsText = `${points.toString()} of ${quiz.questions.length}`
-  const isWin = points === quiz.questions.length
-  const resultText = isWin ? "That's right! Well done!" : 'You can do better!'
-  // const userDelegatedAddress = await kvGetDelegatedAddress(userMainAddress)
-  const intents = [<Button action="/">🔁 Again</Button>]
-
-  if (!isWin) {
-    // if user authorized navigate to answers, if not direct to authorize
-    intents.push(<Button action={'/answers'}>🙋 Answers</Button>)
-  }
-
-  // intents.push(<Button.Link href="https://hack.dappykit.org/?source=quiz-template">🔴 Win Tokens</Button.Link>)
+  const resultText = 'Congratulations!'
+  const intents = [<Button.Transaction
+    action={`/${id}`}
+    target={`/buy/${donate_amount}/0x${eth_address}`}
+  >
+    Donate USDC
+  </Button.Transaction>, <Button action="/">🔁 Try again</Button>]
 
   return c.res({
     title: appTitle,
@@ -118,7 +146,7 @@ app.frame('/result', async c => {
         alignVertical="center"
         backgroundColor="white"
         padding="32"
-        border={isWin ? BORDER_SUCCESS : BORDER_FAIL}
+        border={`1em solid ${quiz.finishBorderColor}`}
       >
         <VStack gap="4">
           <Heading color="h1Text" align="center" size="48">
@@ -134,44 +162,82 @@ app.frame('/result', async c => {
   })
 })
 
-app.frame('/answers', async c => {
-  const { appTitle } = await configureApp(app, c)
-  const questionIndex = c.buttonValue ? Number(c.buttonValue) : 0
-  const quiz = new Quiz(quizData, questionIndex)
-  const isLastQuestion = questionIndex >= quiz.questions.length - 1
-  const intents = []
+app.transaction('/buy/:price/:to', c => {
+  const price = c.req.param('price')
+  const to = c.req.param('to')
+  const abi = [
+    {
+      constant: false,
+      inputs: [
+        {
+          name: 'to',
+          type: 'address',
+        },
+        {
+          name: 'value',
+          type: 'uint256',
+        },
+      ],
+      name: 'transfer',
+      outputs: [
+        {
+          name: '',
+          type: 'bool',
+        },
+      ],
+      type: 'function',
+    },
+  ]
 
-  if (isLastQuestion) {
-    intents.push(<Button action="/">🏠 Home</Button>)
-  } else {
-    intents.push(
-      <Button value={(questionIndex + 1).toString()} action="/answers">
-        👉 Next
-      </Button>,
-    )
-  }
-
-  return c.res({
-    title: appTitle,
-    image: (
-      <Box grow alignVertical="center" backgroundColor="white" padding="32" border={BORDER_SIMPLE}>
-        <VStack gap="4">
-          <Heading color="h1Text" align="center" size="64">
-            {quiz.questions[questionIndex].question}
-          </Heading>
-
-          <Text align="center" size="32">
-            Answer: {quiz.questions[questionIndex].answers[quiz.questions[questionIndex].correctAnswerIndex]}
-          </Text>
-          <Text align="center" size="18">
-            ID: {questionIndex + 1}/{quiz.questions.length}
-          </Text>
-        </VStack>
-      </Box>
-    ),
-    intents,
+  return c.contract({
+    abi,
+    chainId: 'eip155:8453',
+    functionName: 'transfer',
+    args: [to, parseUnits(price, 6)],
+    // USDC on Base contract address
+    to: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
+    value: 0n,
   })
 })
+
+// app.frame('/answers', async c => {
+//   const { appTitle } = await configureApp(app, c)
+//   const questionIndex = c.buttonValue ? Number(c.buttonValue) : 0
+//   const quiz = new Quiz(quizData, questionIndex)
+//   const isLastQuestion = questionIndex >= quiz.questions.length - 1
+//   const intents = []
+//
+//   if (isLastQuestion) {
+//     intents.push(<Button action="/">🏠 Home</Button>)
+//   } else {
+//     intents.push(
+//       <Button value={(questionIndex + 1).toString()} action="/answers">
+//         👉 Next
+//       </Button>,
+//     )
+//   }
+//
+//   return c.res({
+//     title: appTitle,
+//     image: (
+//       <Box grow alignVertical="center" backgroundColor="white" padding="32" border={BORDER_SIMPLE}>
+//         <VStack gap="4">
+//           <Heading color="h1Text" align="center" size="64">
+//             {quiz.questions[questionIndex].question}
+//           </Heading>
+//
+//           <Text align="center" size="32">
+//             Answer: {quiz.questions[questionIndex].answers[quiz.questions[questionIndex].correctAnswerIndex]}
+//           </Text>
+//           <Text align="center" size="18">
+//             ID: {questionIndex + 1}/{quiz.questions.length}
+//           </Text>
+//         </VStack>
+//       </Box>
+//     ),
+//     intents,
+//   })
+// })
 
 // @ts-ignore Vercel info
 const isEdgeFunction = typeof EdgeFunction !== 'undefined'
