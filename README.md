@@ -1,4 +1,13 @@
-# Open Content Server
+# Web4.Build
+
+## What is Web4?
+
+We believe it's all web technologies combined with AI. With our application builder, you can create both Web2 and Web3 applications using simple text commands.
+
+No need to learn new technologies, no need to know how to code. Just describe what you want as the final outcome, and AI will handle the development.
+
+Try our demo to create a quiz on any topic with crypto payments for donations: [https://mini.web4.build/demo](https://mini.web4.build/demo).  
+The final application will be deployed and ready to work on Farcaster.
 
 ### Testnet
 
