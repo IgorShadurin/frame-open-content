@@ -50,10 +50,22 @@ export function Demo() {
       <div className="row">
         <div className="col-9">
           {quizData && <DemoDiagram quizData={quizData} />}
-          {!quizData && <div className="text-center" style={{backgroundColor: '#f8fafc', height: '100vh', border: '1px solid lightgrey', borderRadius: '3px'}}>
+          {!quizData && <div className="text-center" style={{
+            backgroundColor: '#f8fafc',
+            height: '100vh',
+            border: '1px solid lightgrey',
+            borderRadius: '3px'
+          }}>
             <p className="mt-5">
               ✉️ Send a message in the <strong>panel on the right</strong> to start creating your app.
             </p>
+
+            <div className="mt-5 video-responsive">
+              <iframe width="900" height="507" src="https://www.youtube.com/embed/TmoItyYFdU8?si=9p3tz7Kf2myfBHdN"
+                      title="YouTube video player" frameBorder="0"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      referrerPolicy="strict-origin-when-cross-origin" allowFullScreen></iframe>
+            </div>
           </div>}
         </div>
         <div className="col-3">

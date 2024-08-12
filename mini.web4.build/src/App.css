@@ -72,3 +72,13 @@
         flex: 1;
     }
 }
+
+/**
+For Youtube video responsiveness
+ */
+.video-responsive {
+    overflow: hidden;
+    padding-bottom: 56.25%;
+    position: relative;
+    height: 0;
+}
